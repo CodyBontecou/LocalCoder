@@ -1,0 +1,461 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA000001 /* LocalCoderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001; };
+		AA000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000002; };
+		AA000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000003; };
+		AA000004 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000004; };
+		AA000005 /* FilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000005; };
+		AA000006 /* GitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000006; };
+		AA000007 /* LLMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000007; };
+		AA000008 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000008; };
+		AA000009 /* FileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000009; };
+		AA000010 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000010; };
+		AA000011 /* FilesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000011; };
+		AA000012 /* GitViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000012; };
+		AA000013 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000013; };
+		AA000014 /* CodeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014; };
+		AA000015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000015; };
+		AA000016 /* ModelManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000016; };
+		AA000017 /* ModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000017; };
+		AA000018 /* MarkdownCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000018; };
+		AA000019 /* GitTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000019; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AB000000 /* LocalCoder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocalCoder.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB000001 /* LocalCoderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCoderApp.swift; sourceTree = "<group>"; };
+		AB000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AB000003 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AB000004 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		AB000005 /* FilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesView.swift; sourceTree = "<group>"; };
+		AB000006 /* GitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitView.swift; sourceTree = "<group>"; };
+		AB000007 /* LLMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LLMService.swift; sourceTree = "<group>"; };
+		AB000008 /* GitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitService.swift; sourceTree = "<group>"; };
+		AB000009 /* FileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileService.swift; sourceTree = "<group>"; };
+		AB000010 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		AB000011 /* FilesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesViewModel.swift; sourceTree = "<group>"; };
+		AB000012 /* GitViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitViewModel.swift; sourceTree = "<group>"; };
+		AB000013 /* Message.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Message.swift; sourceTree = "<group>"; };
+		AB000014 /* CodeEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeEditorView.swift; sourceTree = "<group>"; };
+		AB000015 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AB000016 /* ModelManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelManagerView.swift; sourceTree = "<group>"; };
+		AB000017 /* ModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelManager.swift; sourceTree = "<group>"; };
+		AB000018 /* MarkdownCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownCodeView.swift; sourceTree = "<group>"; };
+		AB000019 /* GitTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitTerminalView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AC000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AD000001 = {
+			isa = PBXGroup;
+			children = (
+				AD000002 /* LocalCoder */,
+				AD000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AD000002 /* LocalCoder */ = {
+			isa = PBXGroup;
+			children = (
+				AB000001 /* LocalCoderApp.swift */,
+				AB000002 /* ContentView.swift */,
+				AB000003 /* Assets.xcassets */,
+				AD000004 /* Views */,
+				AD000005 /* ViewModels */,
+				AD000006 /* Models */,
+				AD000007 /* Services */,
+			);
+			path = LocalCoder;
+			sourceTree = "<group>";
+		};
+		AD000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AB000000 /* LocalCoder.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AD000004 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AB000004 /* ChatView.swift */,
+				AB000005 /* FilesView.swift */,
+				AB000006 /* GitView.swift */,
+				AB000014 /* CodeEditorView.swift */,
+				AB000015 /* SettingsView.swift */,
+				AB000016 /* ModelManagerView.swift */,
+				AB000018 /* MarkdownCodeView.swift */,
+				AB000019 /* GitTerminalView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		AD000005 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				AB000010 /* ChatViewModel.swift */,
+				AB000011 /* FilesViewModel.swift */,
+				AB000012 /* GitViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		AD000006 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AB000013 /* Message.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AD000007 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				AB000007 /* LLMService.swift */,
+				AB000008 /* GitService.swift */,
+				AB000009 /* FileService.swift */,
+				AB000017 /* ModelManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AE000001 /* LocalCoder */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AF000003;
+			buildPhases = (
+				AC000002 /* Sources */,
+				AC000001 /* Frameworks */,
+				AC000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LocalCoder;
+			packageProductDependencies = (
+				AH000001 /* llama */,
+			);
+			productName = LocalCoder;
+			productReference = AB000000;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AE000002 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					AE000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = AF000001;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AD000001;
+			packageReferences = (
+				AG000001 /* XCRemoteSwiftPackageReference "llama.cpp" */,
+			);
+			productRefGroup = AD000003;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AE000001 /* LocalCoder */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AC000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000003 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AC000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000001 /* LocalCoderApp.swift in Sources */,
+				AA000002 /* ContentView.swift in Sources */,
+				AA000004 /* ChatView.swift in Sources */,
+				AA000005 /* FilesView.swift in Sources */,
+				AA000006 /* GitView.swift in Sources */,
+				AA000007 /* LLMService.swift in Sources */,
+				AA000008 /* GitService.swift in Sources */,
+				AA000009 /* FileService.swift in Sources */,
+				AA000010 /* ChatViewModel.swift in Sources */,
+				AA000011 /* FilesViewModel.swift in Sources */,
+				AA000012 /* GitViewModel.swift in Sources */,
+				AA000013 /* Message.swift in Sources */,
+				AA000014 /* CodeEditorView.swift in Sources */,
+				AA000015 /* SettingsView.swift in Sources */,
+				AA000016 /* ModelManagerView.swift in Sources */,
+				AA000017 /* ModelManager.swift in Sources */,
+				AA000018 /* MarkdownCodeView.swift in Sources */,
+				AA000019 /* GitTerminalView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AF000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				OTHER_CFLAGS = "-DGGML_USE_METAL=1";
+			};
+			name = Debug;
+		};
+		AF000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+				OTHER_CFLAGS = "-DGGML_USE_METAL=1";
+			};
+			name = Release;
+		};
+		AF000021 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LocalCoder/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LocalCoder;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.localcoder.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AF000022 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LocalCoder/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LocalCoder;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.localcoder.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AF000001 /* Build configuration list for PBXProject "LocalCoder" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF000011 /* Debug */,
+				AF000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AF000003 /* Build configuration list for PBXNativeTarget "LocalCoder" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AF000021 /* Debug */,
+				AF000022 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AG000001 /* XCRemoteSwiftPackageReference "llama.cpp" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ggml-org/llama.cpp.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AH000001 /* llama */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AG000001;
+			productName = llama;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+	};
+	rootObject = AE000002 /* Project object */;
+}
