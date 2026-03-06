@@ -12,9 +12,34 @@ final class FilesViewModel: ObservableObject {
     @Published var error: String?
 
     private let fileService = FileService.shared
+    private let gitSync = GitSyncManager.shared
+
+    /// The root directory - uses active git repo if available, otherwise FileService.projectsRoot
+    var rootPath: String {
+        if let repoURL = gitSync.activeRepoURL {
+            return repoURL.path
+        }
+        return fileService.projectsRoot.path
+    }
 
     init() {
-        currentPath = FileService.shared.projectsRoot.path
+        // Start at the active repo if one exists, otherwise use FileService root
+        if let repoURL = GitSyncManager.shared.activeRepoURL {
+            currentPath = repoURL.path
+        } else {
+            currentPath = FileService.shared.projectsRoot.path
+        }
+        refresh()
+    }
+
+    /// Call this when the active repo changes to update the view
+    func syncWithActiveRepo() {
+        let newRoot = rootPath
+        // If we're not within the new root, navigate to it
+        if !currentPath.hasPrefix(newRoot) {
+            pathStack.removeAll()
+            currentPath = newRoot
+        }
         refresh()
     }
 
@@ -43,7 +68,7 @@ final class FilesViewModel: ObservableObject {
 
     func navigateToRoot() {
         pathStack.removeAll()
-        currentPath = fileService.projectsRoot.path
+        currentPath = rootPath
         refresh()
     }
 
@@ -52,7 +77,7 @@ final class FilesViewModel: ObservableObject {
     }
 
     var isAtRoot: Bool {
-        currentPath == fileService.projectsRoot.path
+        currentPath == rootPath
     }
 
     func saveFile() {

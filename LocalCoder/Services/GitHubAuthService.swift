@@ -399,6 +399,72 @@ final class GitHubAuthService: ObservableObject {
         return allRepos
     }
 
+    // MARK: - Create New Repository
+
+    struct CreateRepoResult {
+        let fullName: String   // "owner/repo"
+        let cloneURL: String   // "https://github.com/owner/repo.git"
+        let htmlURL: String    // "https://github.com/owner/repo"
+    }
+
+    /// Creates a new repository on GitHub for the authenticated user.
+    func createRepo(name: String, description: String = "", isPrivate: Bool = true) async throws -> CreateRepoResult {
+        guard isAuthenticated, !token.isEmpty else {
+            throw NSError(domain: "GitHubAuth", code: 401,
+                          userInfo: [NSLocalizedDescriptionKey: "Not authenticated. Please sign in first."])
+        }
+
+        var request = URLRequest(url: URL(string: "https://api.github.com/user/repos")!)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let body: [String: Any] = [
+            "name": name,
+            "description": description,
+            "private": isPrivate,
+            "auto_init": false  // We'll push our own initial commit
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let http = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        if http.statusCode == 201 {
+            // Success
+            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let fullName = json["full_name"] as? String,
+                  let cloneURL = json["clone_url"] as? String,
+                  let htmlURL = json["html_url"] as? String else {
+                throw URLError(.badServerResponse)
+            }
+            return CreateRepoResult(fullName: fullName, cloneURL: cloneURL, htmlURL: htmlURL)
+        } else if http.statusCode == 422 {
+            // Validation error (e.g., repo already exists)
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let errors = json["errors"] as? [[String: Any]],
+               let firstError = errors.first,
+               let message = firstError["message"] as? String {
+                throw NSError(domain: "GitHubAuth", code: 422,
+                              userInfo: [NSLocalizedDescriptionKey: message])
+            }
+            throw NSError(domain: "GitHubAuth", code: 422,
+                          userInfo: [NSLocalizedDescriptionKey: "Repository name already exists or is invalid."])
+        } else {
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let message = json["message"] as? String {
+                throw NSError(domain: "GitHubAuth", code: http.statusCode,
+                              userInfo: [NSLocalizedDescriptionKey: message])
+            }
+            throw NSError(domain: "GitHubAuth", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: "Failed to create repository."])
+        }
+    }
+
     private func fetchUser(token: String) async throws -> GitHubUser {
         var request = URLRequest(url: URL(string: "https://api.github.com/user")!)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

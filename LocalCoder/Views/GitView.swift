@@ -33,9 +33,15 @@ struct GitView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     enum GitSheet: Identifiable {
-        case clone, repos
+        case clone, repos, newRepo, pushToGitHub
         var id: Self { self }
     }
+
+    // New repo state
+    @State private var newRepoName = ""
+    @State private var githubRepoDescription = ""
+    @State private var githubRepoIsPrivate = true
+    @State private var hasRemote = true  // Assume true until checked
 
     var body: some View {
         NavigationStack {
@@ -71,9 +77,14 @@ struct GitView: View {
                 switch sheet {
                 case .clone: cloneSheet
                 case .repos: reposSheet
+                case .newRepo: newRepoSheet
+                case .pushToGitHub: pushToGitHubSheet
                 }
             }
-            .onAppear { refreshStatus() }
+            .onAppear {
+                refreshStatus()
+                checkRemote()
+            }
             .onDisappear { refreshTask?.cancel() }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active {
@@ -734,8 +745,29 @@ struct GitView: View {
                 .foregroundStyle(LC.secondary)
                 .padding(.leading, 2)
 
+            // Show "Push to GitHub" button if there's a local repo without a remote
+            if gitSync.hasActiveRepo && !hasRemote {
+                Button(action: { activeSheet = .pushToGitHub }) {
+                    HStack(spacing: LC.spacingSM) {
+                        Image(systemName: "arrow.up.to.line")
+                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                        Text("PUSH TO GITHUB")
+                            .font(LC.label(10))
+                            .tracking(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, LC.spacingSM + 4)
+                    .foregroundStyle(.white)
+                    .background(LC.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
+                }
+                .disabled(!auth.isAuthenticated)
+                .opacity(auth.isAuthenticated ? 1 : 0.4)
+            }
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: LC.spacingSM) {
+                    moreActionButton("NEW", icon: "plus.rectangle") { activeSheet = .newRepo }
                     moreActionButton("CLONE", icon: "arrow.down.doc") { activeSheet = .clone }
                     moreActionButton("REPOS", icon: "list.bullet") { activeSheet = .repos }
 
@@ -1101,7 +1133,214 @@ struct GitView: View {
         }
     }
 
+    // MARK: - New Repo Sheet
+
+    private var newRepoSheet: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: LC.spacingMD) {
+                VStack(alignment: .leading, spacing: LC.spacingSM) {
+                    Text("REPOSITORY NAME")
+                        .lcLabel()
+
+                    HStack(spacing: LC.spacingSM) {
+                        Image(systemName: "folder.badge.plus")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(LC.secondary)
+                            .frame(width: 16)
+                        TextField("my-project", text: $newRepoName)
+                            .font(LC.body(14))
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                    }
+                    .padding(LC.spacingSM + 2)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: LC.radiusSM)
+                            .stroke(LC.border, lineWidth: LC.borderWidth)
+                    )
+
+                    Text("Creates a new local git repository. You can push it to GitHub later.")
+                        .font(LC.caption(11))
+                        .foregroundStyle(LC.secondary)
+                }
+
+                Spacer()
+            }
+            .padding(LC.spacingMD)
+            .background(LC.surfaceElevated)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("NEW REPO")
+                        .font(LC.label(12))
+                        .tracking(2)
+                        .foregroundStyle(LC.primary)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        newRepoName = ""
+                        activeSheet = nil
+                    }
+                    .font(LC.body(14))
+                    .foregroundStyle(LC.secondary)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Create") {
+                        let name = newRepoName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        newRepoName = ""
+                        activeSheet = nil
+                        Task {
+                            await performAction("Create \(name)") {
+                                try await gitSync.createLocalRepo(name: name)
+                            }
+                            refreshStatus()
+                            checkRemote()
+                        }
+                    }
+                    .font(LC.body(14))
+                    .foregroundStyle(LC.accent)
+                    .disabled(newRepoName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    // MARK: - Push to GitHub Sheet
+
+    private var pushToGitHubSheet: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: LC.spacingMD) {
+                VStack(alignment: .leading, spacing: LC.spacingSM) {
+                    Text("REPOSITORY NAME")
+                        .lcLabel()
+
+                    HStack(spacing: LC.spacingSM) {
+                        Image(systemName: "globe")
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(LC.secondary)
+                            .frame(width: 16)
+                        Text(gitSync.activeRepoName)
+                            .font(LC.body(14))
+                            .foregroundStyle(LC.primary)
+                    }
+                    .padding(LC.spacingSM + 2)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: LC.radiusSM)
+                            .stroke(LC.border, lineWidth: LC.borderWidth)
+                    )
+
+                    Text("Will be created as \(auth.username.isEmpty ? "your-username" : auth.username)/\(gitSync.activeRepoName)")
+                        .font(LC.caption(11))
+                        .foregroundStyle(LC.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: LC.spacingSM) {
+                    Text("DESCRIPTION (OPTIONAL)")
+                        .lcLabel()
+
+                    TextField("A short description...", text: $githubRepoDescription, axis: .vertical)
+                        .font(LC.body(14))
+                        .lineLimit(2...3)
+                        .padding(LC.spacingSM + 2)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: LC.radiusSM)
+                                .stroke(LC.border, lineWidth: LC.borderWidth)
+                        )
+                }
+
+                VStack(alignment: .leading, spacing: LC.spacingSM) {
+                    Text("VISIBILITY")
+                        .lcLabel()
+
+                    HStack(spacing: LC.spacingMD) {
+                        visibilityOption(title: "PRIVATE", icon: "lock.fill", isSelected: githubRepoIsPrivate) {
+                            githubRepoIsPrivate = true
+                        }
+                        visibilityOption(title: "PUBLIC", icon: "globe", isSelected: !githubRepoIsPrivate) {
+                            githubRepoIsPrivate = false
+                        }
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(LC.spacingMD)
+            .background(LC.surfaceElevated)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("PUSH TO GITHUB")
+                        .font(LC.label(12))
+                        .tracking(2)
+                        .foregroundStyle(LC.primary)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        githubRepoDescription = ""
+                        activeSheet = nil
+                    }
+                    .font(LC.body(14))
+                    .foregroundStyle(LC.secondary)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Create & Push") {
+                        let repoName = gitSync.activeRepoName
+                        let description = githubRepoDescription
+                        let isPrivate = githubRepoIsPrivate
+                        githubRepoDescription = ""
+                        activeSheet = nil
+                        Task {
+                            await performAction("Push to GitHub") {
+                                try await gitSync.createAndPushToGitHub(
+                                    repoName: repoName,
+                                    description: description,
+                                    isPrivate: isPrivate
+                                )
+                            }
+                            refreshStatus()
+                            checkRemote()
+                        }
+                    }
+                    .font(LC.body(14))
+                    .foregroundStyle(LC.accent)
+                    .disabled(!auth.isAuthenticated || gitSync.activeRepoName.isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func visibilityOption(title: String, icon: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: LC.spacingSM) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, design: .monospaced))
+                Text(title)
+                    .font(LC.label(10))
+                    .tracking(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, LC.spacingSM + 2)
+            .foregroundStyle(isSelected ? .white : LC.primary)
+            .background(isSelected ? LC.accent : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
+            .overlay(
+                RoundedRectangle(cornerRadius: LC.radiusSM)
+                    .stroke(isSelected ? LC.accent : LC.border, lineWidth: LC.borderWidth)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
     // MARK: - Helpers
+
+    private func checkRemote() {
+        Task {
+            hasRemote = await gitSync.hasRemote()
+        }
+    }
 
     private func refreshStatus() {
         refreshTask?.cancel()

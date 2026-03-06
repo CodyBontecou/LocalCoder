@@ -2,7 +2,7 @@ import Foundation
 
 /// Coordinates the local git repo on the device filesystem.
 ///
-/// Files live in Documents/Repos/<repoName>/ — always writable, no
+/// Files live in Documents/LocalCoder/Repos/<repoName>/ — always writable, no
 /// security-scoped bookmarks needed. The AI's write_file tool writes
 /// here, and the user can commit+push to GitHub whenever they want.
 @MainActor
@@ -19,9 +19,10 @@ final class GitSyncManager: ObservableObject {
     @Published var lastCommitSHA: String = ""
     @Published var statusMessage: String = ""
 
-    /// The root where all cloned repos live: Documents/Repos/
+    /// The root where all cloned repos live: Documents/LocalCoder/Repos/
     var reposRoot: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("LocalCoder", isDirectory: true)
             .appendingPathComponent("Repos", isDirectory: true)
     }
 
@@ -50,6 +51,7 @@ final class GitSyncManager: ObservableObject {
         let name = UserDefaults.standard.string(forKey: "git_sync_state_repo") ?? ""
         guard !name.isEmpty else { return false }
         let repoURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("LocalCoder", isDirectory: true)
             .appendingPathComponent("Repos", isDirectory: true)
             .appendingPathComponent(name, isDirectory: true)
         return FileManager.default.fileExists(
@@ -62,6 +64,7 @@ final class GitSyncManager: ObservableObject {
         let name = UserDefaults.standard.string(forKey: "git_sync_state_repo") ?? ""
         guard !name.isEmpty else { return nil }
         return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("LocalCoder", isDirectory: true)
             .appendingPathComponent("Repos", isDirectory: true)
             .appendingPathComponent(name, isDirectory: true)
     }
@@ -114,6 +117,88 @@ final class GitSyncManager: ObservableObject {
         lastCommitSHA = result.commitSHA
         statusMessage = "Cloned \(result.fileCount) files"
         saveState()
+    }
+
+    // MARK: - Create New Local Repo
+
+    /// Creates a new local git repository (git init) without any remote.
+    func createLocalRepo(name: String) async throws {
+        isCloning = true  // Reuse the cloning state
+        statusMessage = "Creating..."
+        defer { isCloning = false }
+
+        let dest = reposRoot.appendingPathComponent(name, isDirectory: true)
+
+        // Check if already exists
+        let fm = FileManager.default
+        if fm.fileExists(atPath: dest.path) {
+            throw NSError(domain: "GitSync", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "A repository named '\(name)' already exists locally."])
+        }
+
+        let git = LocalGitService(localURL: dest)
+        let sha = try await git.initRepo(initialBranch: "main")
+
+        activeRepoName = name
+        activeRepoBranch = "main"
+        lastCommitSHA = sha
+        statusMessage = "Created local repo"
+        saveState()
+    }
+
+    // MARK: - Create and Push to GitHub
+
+    /// Creates a new repository on GitHub, sets the remote, and pushes.
+    /// Automatically commits any pending changes before pushing.
+    func createAndPushToGitHub(repoName: String, description: String = "", isPrivate: Bool = true) async throws {
+        guard let git = gitService else { throw LocalGitError.notCloned }
+
+        isPushing = true
+        statusMessage = "Creating on GitHub..."
+        defer { isPushing = false }
+
+        // 1. Create repo on GitHub
+        let result = try await GitHubAuthService.shared.createRepo(
+            name: repoName,
+            description: description,
+            isPrivate: isPrivate
+        )
+
+        statusMessage = "Setting remote..."
+
+        // 2. Set the remote
+        try await git.setRemote(name: "origin", url: result.cloneURL)
+
+        // 3. Commit any pending changes before pushing
+        let authorName = UserDefaults.standard.string(forKey: "git_author_name") ?? "LocalCoder"
+        let authorEmail = UserDefaults.standard.string(forKey: "git_author_email") ?? "localcoder@device"
+        
+        do {
+            statusMessage = "Committing changes..."
+            let sha = try await git.commit(
+                message: "Initial commit from LocalCoder",
+                authorName: authorName,
+                authorEmail: authorEmail
+            )
+            lastCommitSHA = sha
+        } catch LocalGitError.noChanges {
+            // No changes to commit, that's fine - just push existing commits
+        }
+
+        statusMessage = "Pushing..."
+
+        // 4. Push to the new remote
+        try await git.push(pat: pat)
+
+        statusMessage = "Pushed to \(result.fullName)"
+        saveState()
+    }
+
+    // MARK: - Check if Remote Exists
+
+    func hasRemote() async -> Bool {
+        guard let git = gitService else { return false }
+        return (try? await git.getRemoteURL()) != nil
     }
 
     // MARK: - Pull

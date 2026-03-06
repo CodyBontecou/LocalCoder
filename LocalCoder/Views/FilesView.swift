@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FilesView: View {
     @StateObject private var viewModel = FilesViewModel()
+    @StateObject private var gitSync = GitSyncManager.shared
     @State private var showNewFileAlert = false
     @State private var showNewFolderAlert = false
     @State private var newItemName = ""
@@ -18,6 +19,9 @@ struct FilesView: View {
                 }
             }
             .background(LC.surface)
+            .onChange(of: gitSync.activeRepoName) { _, _ in
+                viewModel.syncWithActiveRepo()
+            }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

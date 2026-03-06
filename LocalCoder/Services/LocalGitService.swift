@@ -152,6 +152,115 @@ final class LocalGitService: @unchecked Sendable {
         )
     }
 
+    // MARK: - Init (Create New Repo)
+
+    func initRepo(initialBranch: String = "main") async throws -> String {
+        let dest = self.localURL.path
+        let localURL = self.localURL
+
+        return try await Task.detached {
+            // Create the directory if it doesn't exist
+            try FileManager.default.createDirectory(at: localURL, withIntermediateDirectories: true)
+
+            var repo: OpaquePointer?
+            defer { if let repo { git_repository_free(repo) } }
+
+            // Initialize new repository
+            try git2Check(git_repository_init(&repo, dest, 0), context: "Init repo")
+
+            // Create initial commit so we have a HEAD
+            var index: OpaquePointer?
+            defer { if let index { git_index_free(index) } }
+            try git2Check(git_repository_index(&index, repo), context: "Get index")
+
+            // Write tree (empty)
+            var treeOid = git_oid()
+            try git2Check(git_index_write_tree(&treeOid, index), context: "Write tree")
+
+            var tree: OpaquePointer?
+            defer { if let tree { git_tree_free(tree) } }
+            try git2Check(git_tree_lookup(&tree, repo, &treeOid), context: "Lookup tree")
+
+            // Create signature
+            var sig: UnsafeMutablePointer<git_signature>?
+            defer { if let sig { git_signature_free(sig) } }
+            try git2Check(git_signature_now(&sig, "LocalCoder", "localcoder@device"), context: "Create signature")
+
+            // Create initial commit (no parents)
+            var commitOid = git_oid()
+            try git2Check(
+                git_commit_create(
+                    &commitOid, repo, "HEAD",
+                    sig, sig, nil, "Initial commit", tree,
+                    0, nil
+                ),
+                context: "Create initial commit"
+            )
+
+            // Rename branch to the desired name (e.g., main)
+            var head: OpaquePointer?
+            defer { if let head { git_reference_free(head) } }
+            try git2Check(git_repository_head(&head, repo), context: "Read HEAD")
+
+            var newRef: OpaquePointer?
+            defer { if let newRef { git_reference_free(newRef) } }
+            let newRefName = "refs/heads/\(initialBranch)"
+            try git2Check(
+                git_reference_rename(&newRef, head, newRefName, 1, "Rename to \(initialBranch)"),
+                context: "Rename branch"
+            )
+
+            return oidToHex(&commitOid)
+        }.value
+    }
+
+    // MARK: - Set Remote
+
+    func setRemote(name: String = "origin", url: String) async throws {
+        let path = self.localURL.path
+
+        try await Task.detached {
+            var repo: OpaquePointer?
+            defer { if let repo { git_repository_free(repo) } }
+            try git2Check(git_repository_open(&repo, path), context: "Open repo")
+
+            // Check if remote already exists
+            var existingRemote: OpaquePointer?
+            let lookupResult = git_remote_lookup(&existingRemote, repo, name)
+            if lookupResult == 0, let existingRemote {
+                // Remote exists, delete it first
+                git_remote_free(existingRemote)
+                try git2Check(git_remote_delete(repo, name), context: "Delete existing remote")
+            }
+
+            // Create new remote
+            var remote: OpaquePointer?
+            defer { if let remote { git_remote_free(remote) } }
+            try git2Check(git_remote_create(&remote, repo, name, url), context: "Create remote")
+        }.value
+    }
+
+    // MARK: - Get Remote URL
+
+    func getRemoteURL(name: String = "origin") async throws -> String? {
+        let path = self.localURL.path
+
+        return try await Task.detached {
+            var repo: OpaquePointer?
+            defer { if let repo { git_repository_free(repo) } }
+            try git2Check(git_repository_open(&repo, path), context: "Open repo")
+
+            var remote: OpaquePointer?
+            defer { if let remote { git_remote_free(remote) } }
+
+            let lookupResult = git_remote_lookup(&remote, repo, name)
+            guard lookupResult == 0, let remote else { return nil }
+
+            guard let urlPtr = git_remote_url(remote) else { return nil }
+            return String(cString: urlPtr)
+        }.value
+    }
+
     // MARK: - Clone
 
     func clone(remoteURL: String, pat: String) async throws -> LocalCloneResult {
