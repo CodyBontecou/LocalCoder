@@ -17,16 +17,27 @@ struct FilesView: View {
                     fileList
                 }
             }
-            .navigationTitle(viewModel.isAtRoot ? "Projects" : viewModel.currentDirName)
+            .background(LC.surface)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(viewModel.isAtRoot ? "FILES" : viewModel.currentDirName.uppercased())
+                        .font(LC.label(12))
+                        .tracking(2)
+                        .foregroundStyle(LC.primary)
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     if !viewModel.isAtRoot {
                         Button(action: { viewModel.navigateBack() }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "chevron.left")
-                                Text("Back")
+                                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                Text("BACK")
+                                    .font(LC.label(10))
+                                    .tracking(1)
                             }
+                            .foregroundStyle(LC.accent)
                         }
                     }
                 }
@@ -40,9 +51,12 @@ struct FilesView: View {
                         }
                     } label: {
                         Image(systemName: "plus")
+                            .font(.system(size: 14, weight: .regular, design: .monospaced))
+                            .foregroundStyle(LC.accent)
                     }
                 }
             }
+            .toolbarBackground(LC.surfaceElevated, for: .navigationBar)
             .alert("New File", isPresented: $showNewFileAlert) {
                 TextField("filename.swift", text: $newItemName)
                     .autocorrectionDisabled()
@@ -85,110 +99,116 @@ struct FilesView: View {
         }
     }
 
+    // MARK: - Empty State
+
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: viewModel.isAtRoot ? "folder.badge.questionmark" : "doc.text.magnifyingglass")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
+        VStack(spacing: LC.spacingMD) {
+            Image(systemName: viewModel.isAtRoot ? "folder" : "doc.text")
+                .font(.system(size: 32, weight: .ultraLight, design: .monospaced))
+                .foregroundStyle(LC.secondary)
 
-            Text(viewModel.isAtRoot ? "No Projects Yet" : "Empty Folder")
-                .font(.title3.bold())
+            Text(viewModel.isAtRoot ? "NO PROJECTS" : "EMPTY")
+                .font(LC.heading(16))
+                .foregroundStyle(LC.primary)
 
-            Text(viewModel.isAtRoot ? "Generate code from Chat or clone from Git" : "Create files or generate code to fill this folder")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            Text(viewModel.isAtRoot ? "Generate code from Chat\nor clone from Git" : "Create files or generate code")
+                .font(LC.caption(12))
+                .foregroundStyle(LC.secondary)
                 .multilineTextAlignment(.center)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
     }
 
+    // MARK: - File List
+
     private var fileList: some View {
-        List {
-            ForEach(viewModel.files) { item in
-                Button(action: { viewModel.navigateTo(item) }) {
-                    HStack(spacing: 12) {
-                        Image(systemName: iconFor(item))
-                            .font(.title3)
-                            .foregroundStyle(colorFor(item))
-                            .frame(width: 28)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(item.name)
-                                .font(.body)
-                                .foregroundStyle(.primary)
-
-                            if item.isDirectory {
-                                let count = (try? FileManager.default.contentsOfDirectory(atPath: item.path))?.count ?? 0
-                                Text("\(count) items")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(viewModel.files) { item in
+                    Button(action: { viewModel.navigateTo(item) }) {
+                        fileRow(item)
+                    }
+                    .buttonStyle(.plain)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            viewModel.deleteItem(item)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
 
-                        Spacer()
-
-                        if item.isDirectory {
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
+                        Button {
+                            renamingItem = item
+                            newItemName = item.name
+                            showRenameAlert = true
+                        } label: {
+                            Label("Rename", systemImage: "pencil")
                         }
+                        .tint(LC.accent)
                     }
-                    .contentShape(Rectangle())
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        viewModel.deleteItem(item)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-
-                    Button {
-                        renamingItem = item
-                        newItemName = item.name
-                        showRenameAlert = true
-                    } label: {
-                        Label("Rename", systemImage: "pencil")
-                    }
-                    .tint(.orange)
                 }
             }
+            .padding(.horizontal, LC.spacingMD)
+            .padding(.top, LC.spacingSM)
         }
-        .listStyle(.insetGrouped)
         .refreshable {
             viewModel.refresh()
         }
     }
 
-    private func iconFor(_ item: FileItem) -> String {
-        if item.isDirectory { return "folder.fill" }
-        let ext = URL(fileURLWithPath: item.name).pathExtension.lowercased()
-        switch ext {
-        case "swift": return "swift"
-        case "py": return "text.page"
-        case "js", "ts": return "j.square"
-        case "html": return "chevron.left.forwardslash.chevron.right"
-        case "css": return "paintbrush"
-        case "json": return "curlybraces"
-        case "md": return "doc.richtext"
-        case "yaml", "yml": return "list.bullet.indent"
-        case "sh": return "terminal"
-        case "gitignore": return "eye.slash"
-        default: return "doc.text"
+    private func fileRow(_ item: FileItem) -> some View {
+        HStack(spacing: LC.spacingMD - 4) {
+            // File type indicator — small square with extension
+            ZStack {
+                RoundedRectangle(cornerRadius: LC.radiusSM)
+                    .fill(item.isDirectory ? LC.accent.opacity(0.12) : LC.border.opacity(0.3))
+                    .frame(width: 32, height: 32)
+
+                if item.isDirectory {
+                    Image(systemName: "folder")
+                        .font(.system(size: 13, weight: .regular, design: .monospaced))
+                        .foregroundStyle(LC.accent)
+                } else {
+                    Text(extLabel(item.name))
+                        .font(LC.label(8))
+                        .tracking(0.5)
+                        .foregroundStyle(LC.primary)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name)
+                    .font(LC.body(13))
+                    .foregroundStyle(LC.primary)
+                    .lineLimit(1)
+
+                if item.isDirectory {
+                    let count = (try? FileManager.default.contentsOfDirectory(atPath: item.path))?.count ?? 0
+                    Text("\(count) items")
+                        .font(LC.caption(10))
+                        .foregroundStyle(LC.secondary)
+                }
+            }
+
+            Spacer()
+
+            if item.isDirectory {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundStyle(LC.secondary)
+            }
+        }
+        .padding(.vertical, LC.spacingSM + 2)
+        .padding(.horizontal, LC.spacingSM)
+        .contentShape(Rectangle())
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(LC.border.opacity(0.5)).frame(height: LC.borderWidth)
         }
     }
 
-    private func colorFor(_ item: FileItem) -> Color {
-        if item.isDirectory { return .blue }
-        let ext = URL(fileURLWithPath: item.name).pathExtension.lowercased()
-        switch ext {
-        case "swift": return .orange
-        case "py": return .blue
-        case "js": return .yellow
-        case "ts": return .blue
-        case "html": return .red
-        case "css": return .purple
-        case "json": return .green
-        default: return .secondary
-        }
+    private func extLabel(_ name: String) -> String {
+        let ext = URL(fileURLWithPath: name).pathExtension.lowercased()
+        if ext.isEmpty { return "·" }
+        return ext.prefix(3).uppercased()
     }
 }

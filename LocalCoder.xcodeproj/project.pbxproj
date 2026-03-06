@@ -7,25 +7,41 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AA000001 /* LocalCoderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001; };
-		AA000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000002; };
-		AA000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000003; };
-		AA000004 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000004; };
-		AA000005 /* FilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000005; };
-		AA000006 /* GitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000006; };
-		AA000007 /* LLMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000007; };
-		AA000008 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000008; };
-		AA000009 /* FileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000009; };
-		AA000010 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000010; };
-		AA000011 /* FilesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000011; };
-		AA000012 /* GitViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000012; };
-		AA000013 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000013; };
-		AA000014 /* CodeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014; };
-		AA000015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000015; };
-		AA000016 /* ModelManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000016; };
-		AA000017 /* ModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000017; };
-		AA000018 /* MarkdownCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000018; };
-		AA000019 /* GitTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000019; };
+		628CEB1F2F5A5F12005ECDD7 /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = AH000001 /* MLXLLM */; };
+		628CEB202F5A5F12005ECDD7 /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = AH000002 /* MLXLMCommon */; };
+		AA000001 /* LocalCoderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000001 /* LocalCoderApp.swift */; };
+		AA000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000002 /* ContentView.swift */; };
+		AA000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB000003 /* Assets.xcassets */; };
+		AA000004 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000004 /* ChatView.swift */; };
+		AA000005 /* FilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000005 /* FilesView.swift */; };
+		AA000006 /* GitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000006 /* GitView.swift */; };
+		AA000007 /* LLMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000007 /* LLMService.swift */; };
+		AA000008 /* GitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000008 /* GitService.swift */; };
+		AA000009 /* FileService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000009 /* FileService.swift */; };
+		AA000010 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000010 /* ChatViewModel.swift */; };
+		AA000011 /* FilesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000011 /* FilesViewModel.swift */; };
+		AA000012 /* GitViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000012 /* GitViewModel.swift */; };
+		AA000013 /* Message.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000013 /* Message.swift */; };
+		AA000014 /* CodeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000014 /* CodeEditorView.swift */; };
+		AA000015 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000015 /* SettingsView.swift */; };
+		AA000016 /* ModelManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000016 /* ModelManagerView.swift */; };
+		AA000017 /* ModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000017 /* ModelManager.swift */; };
+		AA000018 /* MarkdownCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000018 /* MarkdownCodeView.swift */; };
+		AA000019 /* GitTerminalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000019 /* GitTerminalView.swift */; };
+		AA000020 /* ToolCallParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000020 /* ToolCallParser.swift */; };
+		AA000021 /* WorkingDirectoryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000021 /* WorkingDirectoryService.swift */; };
+		AA000022 /* ToolExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000022 /* ToolExecutor.swift */; };
+		AA000024 /* DebugConsole.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000024 /* DebugConsole.swift */; };
+		AA000025 /* DebugPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000025 /* DebugPanelView.swift */; };
+		AA000026 /* LocalCoderTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000026 /* LocalCoderTheme.swift */; };
+		AA000027 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000027 /* KeychainService.swift */; };
+		AA000034 /* GitHubAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000034 /* GitHubAuthService.swift */; };
+		AA000028 /* GitState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000028 /* GitState.swift */; };
+		AA000029 /* LocalGitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000029 /* LocalGitService.swift */; };
+		AA000030 /* GitSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000030 /* GitSyncManager.swift */; };
+		AA000031 /* Conversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000031 /* Conversation.swift */; };
+		AA000032 /* ConversationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000032 /* ConversationStore.swift */; };
+		AA000033 /* ConversationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000033 /* ConversationListView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -49,6 +65,20 @@
 		AB000017 /* ModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelManager.swift; sourceTree = "<group>"; };
 		AB000018 /* MarkdownCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownCodeView.swift; sourceTree = "<group>"; };
 		AB000019 /* GitTerminalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitTerminalView.swift; sourceTree = "<group>"; };
+		AB000020 /* ToolCallParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolCallParser.swift; sourceTree = "<group>"; };
+		AB000021 /* WorkingDirectoryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkingDirectoryService.swift; sourceTree = "<group>"; };
+		AB000022 /* ToolExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolExecutor.swift; sourceTree = "<group>"; };
+		AB000024 /* DebugConsole.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugConsole.swift; sourceTree = "<group>"; };
+		AB000025 /* DebugPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugPanelView.swift; sourceTree = "<group>"; };
+		AB000026 /* LocalCoderTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCoderTheme.swift; sourceTree = "<group>"; };
+		AB000027 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		AB000034 /* GitHubAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubAuthService.swift; sourceTree = "<group>"; };
+		AB000028 /* GitState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitState.swift; sourceTree = "<group>"; };
+		AB000029 /* LocalGitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalGitService.swift; sourceTree = "<group>"; };
+		AB000030 /* GitSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitSyncManager.swift; sourceTree = "<group>"; };
+		AB000031 /* Conversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Conversation.swift; sourceTree = "<group>"; };
+		AB000032 /* ConversationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationStore.swift; sourceTree = "<group>"; };
+		AB000033 /* ConversationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationListView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,6 +86,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				628CEB202F5A5F12005ECDD7 /* MLXLMCommon in Frameworks */,
+				628CEB1F2F5A5F12005ECDD7 /* MLXLLM in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -80,6 +112,7 @@
 				AD000005 /* ViewModels */,
 				AD000006 /* Models */,
 				AD000007 /* Services */,
+				AD000008 /* Theme */,
 			);
 			path = LocalCoder;
 			sourceTree = "<group>";
@@ -103,6 +136,8 @@
 				AB000016 /* ModelManagerView.swift */,
 				AB000018 /* MarkdownCodeView.swift */,
 				AB000019 /* GitTerminalView.swift */,
+				AB000025 /* DebugPanelView.swift */,
+				AB000033 /* ConversationListView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -121,6 +156,7 @@
 			isa = PBXGroup;
 			children = (
 				AB000013 /* Message.swift */,
+				AB000031 /* Conversation.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -132,8 +168,26 @@
 				AB000008 /* GitService.swift */,
 				AB000009 /* FileService.swift */,
 				AB000017 /* ModelManager.swift */,
+				AB000020 /* ToolCallParser.swift */,
+				AB000021 /* WorkingDirectoryService.swift */,
+				AB000022 /* ToolExecutor.swift */,
+				AB000024 /* DebugConsole.swift */,
+				AB000027 /* KeychainService.swift */,
+				AB000034 /* GitHubAuthService.swift */,
+				AB000028 /* GitState.swift */,
+				AB000029 /* LocalGitService.swift */,
+				AB000030 /* GitSyncManager.swift */,
+				AB000032 /* ConversationStore.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		AD000008 /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				AB000026 /* LocalCoderTheme.swift */,
+			);
+			path = Theme;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -141,7 +195,7 @@
 /* Begin PBXNativeTarget section */
 		AE000001 /* LocalCoder */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AF000003;
+			buildConfigurationList = AF000003 /* Build configuration list for PBXNativeTarget "LocalCoder" */;
 			buildPhases = (
 				AC000002 /* Sources */,
 				AC000001 /* Frameworks */,
@@ -153,10 +207,12 @@
 			);
 			name = LocalCoder;
 			packageProductDependencies = (
-				AH000001 /* llama */,
+				AH000001 /* MLXLLM */,
+				AH000002 /* MLXLMCommon */,
+				AH000003 /* Clibgit2 */,
 			);
 			productName = LocalCoder;
-			productReference = AB000000;
+			productReference = AB000000 /* LocalCoder.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -174,7 +230,7 @@
 					};
 				};
 			};
-			buildConfigurationList = AF000001;
+			buildConfigurationList = AF000001 /* Build configuration list for PBXProject "LocalCoder" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -184,9 +240,10 @@
 			);
 			mainGroup = AD000001;
 			packageReferences = (
-				AG000001 /* XCRemoteSwiftPackageReference "llama.cpp" */,
+				AG000001 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
+				AG000002 /* XCLocalSwiftPackageReference "Packages/Clibgit2" */,
 			);
-			productRefGroup = AD000003;
+			productRefGroup = AD000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -229,6 +286,20 @@
 				AA000017 /* ModelManager.swift in Sources */,
 				AA000018 /* MarkdownCodeView.swift in Sources */,
 				AA000019 /* GitTerminalView.swift in Sources */,
+				AA000020 /* ToolCallParser.swift in Sources */,
+				AA000021 /* WorkingDirectoryService.swift in Sources */,
+				AA000022 /* ToolExecutor.swift in Sources */,
+				AA000024 /* DebugConsole.swift in Sources */,
+				AA000025 /* DebugPanelView.swift in Sources */,
+				AA000026 /* LocalCoderTheme.swift in Sources */,
+				AA000027 /* KeychainService.swift in Sources */,
+				AA000034 /* GitHubAuthService.swift in Sources */,
+				AA000028 /* GitState.swift in Sources */,
+				AA000029 /* LocalGitService.swift in Sources */,
+				AA000030 /* GitSyncManager.swift in Sources */,
+				AA000031 /* Conversation.swift in Sources */,
+				AA000032 /* ConversationStore.swift in Sources */,
+				AA000033 /* ConversationListView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -294,7 +365,6 @@
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				OTHER_CFLAGS = "-DGGML_USE_METAL=1";
 			};
 			name = Debug;
 		};
@@ -350,7 +420,6 @@
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
-				OTHER_CFLAGS = "-DGGML_USE_METAL=1";
 			};
 			name = Release;
 		};
@@ -361,7 +430,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 67KC823C9A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LocalCoder/Info.plist;
@@ -391,7 +460,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 67KC823C9A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LocalCoder/Info.plist;
@@ -438,24 +507,39 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		AG000001 /* XCRemoteSwiftPackageReference "llama.cpp" */ = {
+		AG000001 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ggml-org/llama.cpp.git";
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-lm";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
+				kind = revision;
+				revision = e33eba8513595bde535719c48fedcb10ade5af57;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		AG000002 /* XCLocalSwiftPackageReference "Packages/Clibgit2" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "Packages/Clibgit2";
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
-		AH000001 /* llama */ = {
+		AH000001 /* MLXLLM */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = AG000001;
-			productName = llama;
+			package = AG000001 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLLM;
+		};
+		AH000002 /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AG000001 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */;
+			productName = MLXLMCommon;
+		};
+		AH000003 /* Clibgit2 */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Clibgit2;
 		};
 /* End XCSwiftPackageProductDependency section */
-
 	};
 	rootObject = AE000002 /* Project object */;
 }

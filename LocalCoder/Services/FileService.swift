@@ -6,7 +6,7 @@ final class FileService: ObservableObject {
 
     var projectsRoot: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Projects")
+            .appendingPathComponent("LocalCoder")
     }
 
     private init() {

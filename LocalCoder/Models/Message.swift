@@ -54,9 +54,13 @@ struct GitStatus {
 struct ModelInfo: Identifiable, Codable {
     let id: String
     let name: String
-    let filename: String
-    let url: String
+    let repositoryID: String?
+    let localPath: String?
     let size: String
     let description: String
     var isDownloaded: Bool = false
+
+    var isLocalOnly: Bool {
+        repositoryID == nil && localPath != nil
+    }
 }

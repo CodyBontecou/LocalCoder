@@ -1,24 +1,35 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ChatView: View {
     @EnvironmentObject var llmService: LLMService
+    @EnvironmentObject var debugConsole: DebugConsole
     @StateObject private var viewModel = ChatViewModel()
+    @StateObject private var workingDir = WorkingDirectoryService.shared
+    @StateObject private var gitSync = GitSyncManager.shared
     @State private var showSaveSheet = false
     @State private var selectedCodeBlock: CodeBlock?
     @State private var saveFilename = ""
     @State private var saveProject = ""
+    @State private var showFolderPicker = false
+    @State private var isDebugPanelExpanded = false
+    @State private var showDebugPanel = false
+    @State private var showConversationList = false
     @FocusState private var isInputFocused: Bool
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Model status bar
-                modelStatusBar
+                // Status strip
+                statusStrip
+
+                // Working directory
+                directoryStrip
 
                 // Messages
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 12) {
+                        LazyVStack(alignment: .leading, spacing: LC.spacingMD) {
                             ForEach(viewModel.messages) { message in
                                 MessageBubble(message: message, onSaveCode: { block in
                                     selectedCodeBlock = block
@@ -28,11 +39,12 @@ struct ChatView: View {
                                 .id(message.id)
                             }
                         }
-                        .padding()
+                        .padding(LC.spacingMD)
                     }
+                    .background(LC.surface)
                     .onChange(of: viewModel.messages.last?.content) { _, _ in
                         if let last = viewModel.messages.last {
-                            withAnimation {
+                            withAnimation(.easeOut(duration: 0.15)) {
                                 proxy.scrollTo(last.id, anchor: .bottom)
                             }
                         }
@@ -41,79 +53,239 @@ struct ChatView: View {
 
                 // Error banner
                 if let error = viewModel.error {
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle")
+                    HStack(spacing: LC.spacingSM) {
+                        Text("ERR")
+                            .font(LC.label(10))
+                            .tracking(1.5)
+                            .foregroundStyle(LC.destructive)
+
+                        Rectangle()
+                            .fill(LC.destructive.opacity(0.3))
+                            .frame(width: 1)
+                            .frame(maxHeight: .infinity)
+                            .padding(.vertical, 4)
+
                         Text(error)
-                            .font(.caption)
+                            .font(LC.caption(11))
+                            .foregroundStyle(LC.primary)
+                            .lineLimit(2)
+
                         Spacer()
-                        Button("Dismiss") { viewModel.error = nil }
-                            .font(.caption.bold())
+
+                        Button(action: { viewModel.error = nil }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundStyle(LC.secondary)
+                        }
                     }
-                    .padding(8)
-                    .background(Color.red.opacity(0.15))
-                    .foregroundStyle(.red)
+                    .padding(.horizontal, LC.spacingMD)
+                    .padding(.vertical, LC.spacingSM)
+                    .background(LC.destructive.opacity(0.08))
+                    .overlay(alignment: .top) {
+                        Rectangle().fill(LC.destructive.opacity(0.4)).frame(height: 1)
+                    }
                 }
 
-                // Input bar
+                if showDebugPanel {
+                    DebugPanelView(console: debugConsole, isExpanded: $isDebugPanelExpanded)
+                }
+
+                // Input
                 inputBar
             }
-            .navigationTitle("LocalCoder")
+            .background(LC.surface)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: { viewModel.clearChat() }) {
-                        Image(systemName: "trash")
-                    }
-                    .disabled(viewModel.messages.isEmpty)
+                ToolbarItem(placement: .principal) {
+                    Text("LOCALCODER")
+                        .font(LC.label(12))
+                        .tracking(2)
+                        .foregroundStyle(LC.primary)
                 }
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarLeading) {
+                    Button(action: { showConversationList = true }) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 14, weight: .regular, design: .monospaced))
+                            .foregroundStyle(LC.secondary)
+                    }
+
+                    Button(action: { viewModel.newConversation() }) {
+                        Image(systemName: "square.and.pencil")
+                            .font(.system(size: 14, weight: .regular, design: .monospaced))
+                            .foregroundStyle(LC.secondary)
+                    }
+                }
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            showDebugPanel.toggle()
+                            if showDebugPanel {
+                                isDebugPanelExpanded = true
+                            }
+                        }
+                    }) {
+                        Image(systemName: debugConsole.errorCount > 0 ? "ant.circle.fill" : "ant")
+                            .font(.system(size: 14, weight: .regular, design: .monospaced))
+                            .foregroundStyle(debugConsole.errorCount > 0 ? LC.accent : LC.secondary)
+                    }
+
                     NavigationLink(destination: ModelManagerView()) {
                         Image(systemName: "cpu")
+                            .font(.system(size: 14, weight: .regular, design: .monospaced))
+                            .foregroundStyle(LC.secondary)
                     }
                 }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button(action: { isInputFocused = false }) {
+                        Image(systemName: "keyboard.chevron.compact.down")
+                            .font(.system(size: 14, design: .monospaced))
+                            .foregroundStyle(LC.secondary)
+                    }
+                    .accessibilityLabel("Hide keyboard")
+                }
             }
+            .toolbarBackground(LC.surfaceElevated, for: .navigationBar)
             .sheet(isPresented: $showSaveSheet) {
                 saveCodeSheet
+            }
+            .sheet(isPresented: $showConversationList) {
+                ConversationListView(viewModel: viewModel)
+            }
+            
+            .fileImporter(
+                isPresented: $showFolderPicker,
+                allowedContentTypes: [.folder],
+                allowsMultipleSelection: false
+            ) { result in
+                switch result {
+                case .success(let urls):
+                    if let url = urls.first {
+                        workingDir.setWorkingDirectory(url)
+                    }
+                case .failure(let error):
+                    viewModel.error = error.localizedDescription
+                }
             }
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - Status Strip
 
-    private var modelStatusBar: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(llmService.isModelLoaded ? .green : .red)
-                .frame(width: 8, height: 8)
+    private var statusStrip: some View {
+        HStack(spacing: LC.spacingSM) {
+            LCStatusDot(isActive: llmService.isModelLoaded)
 
-            Text(llmService.isModelLoaded ? "Model Ready" : "No Model Loaded")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Text(llmService.isModelLoaded ? "READY" : "NO MODEL")
+                .font(LC.label(9))
+                .tracking(1.5)
+                .foregroundStyle(llmService.isModelLoaded ? LC.accent : LC.secondary)
 
             Spacer()
 
             if viewModel.isGenerating {
-                ProgressView()
-                    .scaleEffect(0.7)
-                Text("Generating...")
-                    .font(.caption)
-                    .foregroundStyle(.green)
+                HStack(spacing: LC.spacingXS) {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .tint(LC.accent)
+                    Text("GENERATING")
+                        .font(LC.label(9))
+                        .tracking(1.5)
+                        .foregroundStyle(LC.accent)
+                }
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, LC.spacingMD)
         .padding(.vertical, 6)
-        .background(.bar)
+        .background(LC.surfaceElevated)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(LC.border).frame(height: LC.borderWidth)
+        }
     }
 
+    // MARK: - Directory Strip
+
+    private var directoryStrip: some View {
+        HStack(spacing: LC.spacingSM) {
+            if gitSync.hasActiveRepo {
+                // Show active git repo
+                Image(systemName: "externaldrive.connected.to.line.below")
+                    .font(.system(size: 11, weight: .regular, design: .monospaced))
+                    .foregroundStyle(LC.accent)
+
+                Text(gitSync.activeRepoName)
+                    .font(LC.caption(11))
+                    .foregroundStyle(LC.primary)
+                    .lineLimit(1)
+
+                Text(gitSync.activeRepoBranch)
+                    .font(LC.label(8))
+                    .tracking(1)
+                    .foregroundStyle(LC.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(LC.surfaceElevated)
+                    .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
+
+                Spacer()
+            } else {
+                Image(systemName: "folder")
+                    .font(.system(size: 11, weight: .regular, design: .monospaced))
+                    .foregroundStyle(workingDir.workingDirectoryURL != nil ? LC.accent : LC.secondary)
+
+                if workingDir.workingDirectoryURL != nil {
+                    Text(workingDir.workingDirectoryName)
+                        .font(LC.caption(11))
+                        .foregroundStyle(LC.primary)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    Button(action: { workingDir.clearWorkingDirectory() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundStyle(LC.secondary)
+                    }
+                } else {
+                    Text("NO PROJECT")
+                        .font(LC.label(9))
+                        .tracking(1)
+                        .foregroundStyle(LC.secondary)
+                    Spacer()
+                }
+
+                Button(action: { showFolderPicker = true }) {
+                    Text(workingDir.workingDirectoryURL != nil ? "CHANGE" : "OPEN")
+                        .font(LC.label(9))
+                        .tracking(1)
+                        .foregroundStyle(LC.accent)
+                }
+            }
+        }
+        .padding(.horizontal, LC.spacingMD)
+        .padding(.vertical, 5)
+        .background(LC.surface)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(LC.border).frame(height: LC.borderWidth)
+        }
+    }
+
+    // MARK: - Input Bar
+
     private var inputBar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: LC.spacingSM) {
             TextField("Ask for code...", text: $viewModel.inputText, axis: .vertical)
-                .textFieldStyle(.plain)
+                .font(LC.body(14))
                 .lineLimit(1...5)
                 .focused($isInputFocused)
-                .padding(10)
-                .background(Color(.systemGray6))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(LC.spacingSM + 2)
+                .background(LC.surface)
+                .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
+                .overlay(
+                    RoundedRectangle(cornerRadius: LC.radiusSM)
+                        .stroke(LC.border, lineWidth: LC.borderWidth)
+                )
                 .onSubmit {
                     if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         viewModel.sendMessage()
@@ -127,43 +299,106 @@ struct ChatView: View {
                     viewModel.sendMessage()
                 }
             }) {
-                Image(systemName: viewModel.isGenerating ? "stop.circle.fill" : "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(viewModel.isGenerating ? .red : .green)
+                Image(systemName: viewModel.isGenerating ? "stop.fill" : "arrow.up")
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundStyle(viewModel.isGenerating ? .white : .white)
+                    .frame(width: 36, height: 36)
+                    .background(viewModel.isGenerating ? LC.destructive : LC.accent)
+                    .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
             }
             .disabled(!viewModel.isGenerating && (viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !llmService.isModelLoaded))
+            .opacity(!viewModel.isGenerating && (viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !llmService.isModelLoaded) ? 0.35 : 1)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(.bar)
+        .padding(.horizontal, LC.spacingMD)
+        .padding(.vertical, LC.spacingSM)
+        .background(LC.surfaceElevated)
+        .overlay(alignment: .top) {
+            Rectangle().fill(LC.border).frame(height: LC.borderWidth)
+        }
     }
+
+    // MARK: - Save Sheet
 
     private var saveCodeSheet: some View {
         NavigationStack {
-            Form {
-                Section("File Details") {
-                    TextField("Filename", text: $saveFilename)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+            VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: LC.spacingMD) {
+                    Text("FILE DETAILS")
+                        .lcLabel()
 
-                    TextField("Project folder", text: $saveProject)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
-                }
+                    VStack(spacing: LC.spacingSM) {
+                        HStack {
+                            Text("NAME")
+                                .font(LC.label(9))
+                                .tracking(1)
+                                .foregroundStyle(LC.secondary)
+                                .frame(width: 60, alignment: .leading)
+                            TextField("filename.swift", text: $saveFilename)
+                                .font(LC.body(14))
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                        }
+                        .padding(LC.spacingSM)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: LC.radiusSM)
+                                .stroke(LC.border, lineWidth: LC.borderWidth)
+                        )
 
-                if let block = selectedCodeBlock {
-                    Section("Preview") {
+                        HStack {
+                            Text("DIR")
+                                .font(LC.label(9))
+                                .tracking(1)
+                                .foregroundStyle(LC.secondary)
+                                .frame(width: 60, alignment: .leading)
+                            TextField("Project folder", text: $saveProject)
+                                .font(LC.body(14))
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                        }
+                        .padding(LC.spacingSM)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: LC.radiusSM)
+                                .stroke(LC.border, lineWidth: LC.borderWidth)
+                        )
+                    }
+
+                    if let block = selectedCodeBlock {
+                        Text("PREVIEW")
+                            .lcLabel()
+                            .padding(.top, LC.spacingSM)
+
                         Text(block.code)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(LC.code(11))
+                            .foregroundStyle(LC.primary)
                             .lineLimit(10)
+                            .padding(LC.spacingSM)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(LC.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: LC.radiusSM)
+                                    .stroke(LC.border, lineWidth: LC.borderWidth)
+                            )
                     }
                 }
+                .padding(LC.spacingMD)
+
+                Spacer()
             }
-            .navigationTitle("Save Code")
+            .background(LC.surfaceElevated)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("SAVE CODE")
+                        .font(LC.label(12))
+                        .tracking(2)
+                        .foregroundStyle(LC.primary)
+                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { showSaveSheet = false }
+                        .font(LC.body(14))
+                        .foregroundStyle(LC.secondary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
@@ -173,6 +408,8 @@ struct ChatView: View {
                         }
                         showSaveSheet = false
                     }
+                    .font(LC.body(14))
+                    .foregroundStyle(LC.accent)
                     .disabled(saveFilename.isEmpty)
                 }
             }
@@ -210,23 +447,68 @@ struct MessageBubble: View {
 
     var body: some View {
         VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
-            HStack {
-                if message.role == .user { Spacer(minLength: 40) }
+            // Role label
+            Text(roleLabel)
+                .font(LC.label(9))
+                .tracking(1.5)
+                .foregroundStyle(LC.secondary)
+                .padding(.horizontal, 2)
 
-                VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                if message.role == .user { Spacer(minLength: 48) }
+
+                VStack(alignment: .leading, spacing: LC.spacingSM) {
                     if message.role == .assistant {
                         MarkdownCodeView(text: message.content, onSaveCode: onSaveCode)
+                    } else if message.role == .system {
+                        HStack(spacing: 6) {
+                            Image(systemName: "terminal")
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundStyle(LC.accent)
+                            Text(message.content)
+                                .font(LC.caption(11))
+                                .foregroundStyle(LC.secondary)
+                        }
                     } else {
                         Text(message.content)
-                            .foregroundStyle(.white)
+                            .font(LC.body(14))
+                            .foregroundStyle(LC.surface)
                     }
                 }
-                .padding(12)
-                .background(message.role == .user ? Color.green.opacity(0.8) : Color(.systemGray5))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(message.role == .system ? LC.spacingSM : LC.spacingMD - 2)
+                .background(backgroundFor(message.role))
+                .clipShape(RoundedRectangle(cornerRadius: LC.radiusMD))
+                .overlay(
+                    RoundedRectangle(cornerRadius: LC.radiusMD)
+                        .stroke(borderFor(message.role), lineWidth: LC.borderWidth)
+                )
 
-                if message.role == .assistant { Spacer(minLength: 40) }
+                if message.role == .assistant || message.role == .system { Spacer(minLength: 48) }
             }
+        }
+    }
+
+    private var roleLabel: String {
+        switch message.role {
+        case .user: return "YOU"
+        case .assistant: return "LC"
+        case .system: return "SYS"
+        }
+    }
+
+    private func backgroundFor(_ role: ChatMessage.Role) -> Color {
+        switch role {
+        case .user: return LC.inverseSurface
+        case .assistant: return LC.surfaceElevated
+        case .system: return LC.surface
+        }
+    }
+
+    private func borderFor(_ role: ChatMessage.Role) -> Color {
+        switch role {
+        case .user: return .clear
+        case .assistant: return LC.border
+        case .system: return LC.border.opacity(0.5)
         }
     }
 }

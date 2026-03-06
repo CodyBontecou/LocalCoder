@@ -2,34 +2,30 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var llmService: LLMService
-    @State private var selectedTab = 0
+    @State private var selectedTab: LCTab = .chat
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            ChatView()
-                .tabItem {
-                    Label("Chat", systemImage: "bubble.left.and.text.bubble.right")
+        VStack(spacing: 0) {
+            Group {
+                switch selectedTab {
+                case .chat:
+                    ChatView()
+                case .files:
+                    FilesView()
+                case .git:
+                    GitView()
+                case .settings:
+                    SettingsView()
                 }
-                .tag(0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            FilesView()
-                .tabItem {
-                    Label("Files", systemImage: "folder")
-                }
-                .tag(1)
-
-            GitView()
-                .tabItem {
-                    Label("Git", systemImage: "arrow.triangle.branch")
-                }
-                .tag(2)
-
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
-                .tag(3)
+            LCTabBar(selectedTab: $selectedTab)
         }
-        .tint(.green)
+        .background(LC.surface)
+        .tint(LC.accent)
+        .task {
+            await llmService.autoLoadLastModel()
+        }
     }
 }

@@ -15,30 +15,40 @@ struct CodeEditorView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // File info bar
-                HStack {
-                    Image(systemName: iconForExtension)
-                        .foregroundStyle(colorForExtension)
-                    Text(filename)
-                        .font(.subheadline.monospaced().bold())
-                    Spacer()
-                    if hasChanges {
-                        Text("Modified")
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(Color.orange.opacity(0.2))
-                            .foregroundStyle(.orange)
-                            .clipShape(Capsule())
-                    }
-                    Text("\(content.components(separatedBy: "\n").count) lines")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .background(.bar)
+                HStack(spacing: LC.spacingSM) {
+                    Text(extLabel.uppercased())
+                        .font(LC.label(8))
+                        .tracking(1)
+                        .foregroundStyle(LC.accent)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(LC.accent.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
 
-                Divider()
+                    Text(filename)
+                        .font(LC.body(13))
+                        .foregroundStyle(LC.primary)
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    if hasChanges {
+                        Text("MODIFIED")
+                            .font(LC.label(8))
+                            .tracking(1)
+                            .foregroundStyle(LC.accent)
+                    }
+
+                    Text("\(content.components(separatedBy: "\n").count) L")
+                        .font(LC.caption(10))
+                        .foregroundStyle(LC.secondary)
+                }
+                .padding(.horizontal, LC.spacingMD)
+                .padding(.vertical, LC.spacingSM)
+                .background(LC.surfaceElevated)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(LC.border).frame(height: LC.borderWidth)
+                }
 
                 // Editor
                 if showLineNumbers {
@@ -47,11 +57,20 @@ struct CodeEditorView: View {
                     plainEditor
                 }
             }
-            .navigationTitle("Editor")
+            .background(LC.surface)
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("EDITOR")
+                        .font(LC.label(12))
+                        .tracking(2)
+                        .foregroundStyle(LC.primary)
+                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", action: onDismiss)
+                        .font(LC.body(14))
+                        .foregroundStyle(LC.secondary)
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Menu {
@@ -67,7 +86,9 @@ struct CodeEditorView: View {
                             Label("Copy All", systemImage: "doc.on.doc")
                         }
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 14, weight: .regular, design: .monospaced))
+                            .foregroundStyle(LC.secondary)
                     }
 
                     Button(action: {
@@ -75,8 +96,10 @@ struct CodeEditorView: View {
                         hasChanges = false
                         originalContent = content
                     }) {
-                        Text("Save")
-                            .bold()
+                        Text("SAVE")
+                            .font(LC.label(11))
+                            .tracking(1)
+                            .foregroundStyle(hasChanges ? LC.accent : LC.secondary)
                     }
                     .disabled(!hasChanges)
                 }
@@ -96,7 +119,7 @@ struct CodeEditorView: View {
             .autocorrectionDisabled()
             .textInputAutocapitalization(.never)
             .scrollContentBackground(.hidden)
-            .background(Color(.systemBackground))
+            .background(LC.surface)
     }
 
     private var numberedEditor: some View {
@@ -107,15 +130,15 @@ struct CodeEditorView: View {
                     ForEach(1...max(content.components(separatedBy: "\n").count, 1), id: \.self) { num in
                         Text("\(num)")
                             .font(.system(size: fontSize, design: .monospaced))
-                            .foregroundStyle(.tertiary)
-                            .padding(.trailing, 8)
+                            .foregroundStyle(LC.secondary.opacity(0.5))
+                            .padding(.trailing, LC.spacingSM)
                     }
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, LC.spacingSM)
                 .frame(minWidth: 40)
-                .background(Color(.systemGray6))
+                .background(LC.surfaceElevated)
 
-                Divider()
+                Rectangle().fill(LC.border).frame(width: LC.borderWidth)
 
                 // Code
                 TextEditor(text: $content)
@@ -127,27 +150,11 @@ struct CodeEditorView: View {
                     .frame(minHeight: CGFloat(content.components(separatedBy: "\n").count) * (fontSize + 4) + 20)
             }
         }
+        .background(LC.surface)
     }
 
-    private var iconForExtension: String {
+    private var extLabel: String {
         let ext = (filename as NSString).pathExtension.lowercased()
-        switch ext {
-        case "swift": return "swift"
-        case "py": return "text.page"
-        case "js", "ts": return "j.square"
-        case "html": return "chevron.left.forwardslash.chevron.right"
-        default: return "doc.text"
-        }
-    }
-
-    private var colorForExtension: Color {
-        let ext = (filename as NSString).pathExtension.lowercased()
-        switch ext {
-        case "swift": return .orange
-        case "py": return .blue
-        case "js": return .yellow
-        case "ts": return .blue
-        default: return .secondary
-        }
+        return ext.isEmpty ? "txt" : ext
     }
 }

@@ -1,6 +1,9 @@
 import Foundation
+import Hub
+import MLXLLM
+import MLXLMCommon
 
-/// Downloads and manages GGUF model files
+/// Downloads and manages MLX model folders from Hugging Face.
 @MainActor
 final class ModelManager: ObservableObject {
     static let shared = ModelManager()
@@ -10,7 +13,9 @@ final class ModelManager: ObservableObject {
     @Published var isDownloading = false
     @Published var downloadingModelId: String?
 
-    private var downloadTask: URLSessionDownloadTask?
+    let hub: HubApi
+
+    private let downloadedPathsKey = "downloaded_mlx_model_paths"
 
     var modelsDirectory: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -18,87 +23,62 @@ final class ModelManager: ObservableObject {
     }
 
     private init() {
-        try? FileManager.default.createDirectory(at: modelsDirectory, withIntermediateDirectories: true)
+        let root = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Models")
+        try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        hub = HubApi(downloadBase: root)
         loadAvailableModels()
     }
 
     func loadAvailableModels() {
-        // Curated list of coding-optimized models that work well on iPhone
-        var models: [ModelInfo] = [
-            ModelInfo(
-                id: "qwen25-coder-1.5b-q4",
-                name: "Qwen 2.5 Coder 1.5B (Q4_K_M)",
-                filename: "qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
-                url: "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf",
-                size: "1.0 GB",
-                description: "Fast, great for quick code snippets. Runs well on all iPhones."
-            ),
-            ModelInfo(
-                id: "qwen25-coder-3b-q4",
-                name: "Qwen 2.5 Coder 3B (Q4_K_M)",
-                filename: "qwen2.5-coder-3b-instruct-q4_k_m.gguf",
-                url: "https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/resolve/main/qwen2.5-coder-3b-instruct-q4_k_m.gguf",
-                size: "2.0 GB",
-                description: "Best balance of quality and speed. Recommended for iPhone 15+."
-            ),
-            ModelInfo(
-                id: "qwen25-coder-7b-q4",
-                name: "Qwen 2.5 Coder 7B (Q4_K_M)",
-                filename: "qwen2.5-coder-7b-instruct-q4_k_m.gguf",
-                url: "https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/resolve/main/qwen2.5-coder-7b-instruct-q4_k_m.gguf",
-                size: "4.7 GB",
-                description: "Highest quality code generation. Requires iPhone 15 Pro+ (8GB RAM)."
-            ),
-            ModelInfo(
-                id: "deepseek-coder-1.3b-q4",
-                name: "DeepSeek Coder 1.3B (Q4_K_M)",
-                filename: "deepseek-coder-1.3b-instruct-q4_k_m.gguf",
-                url: "https://huggingface.co/TheBloke/deepseek-coder-1.3b-instruct-GGUF/resolve/main/deepseek-coder-1.3b-instruct.Q4_K_M.gguf",
-                size: "0.8 GB",
-                description: "Tiny and fast. Good for simple code tasks on any device."
-            ),
-            ModelInfo(
-                id: "codellama-7b-q4",
-                name: "CodeLlama 7B Instruct (Q4_K_M)",
-                filename: "codellama-7b-instruct.Q4_K_M.gguf",
-                url: "https://huggingface.co/TheBloke/CodeLlama-7B-Instruct-GGUF/resolve/main/codellama-7b-instruct.Q4_K_M.gguf",
-                size: "4.1 GB",
-                description: "Meta's code model. Strong at Python, C++, Java. Needs 8GB RAM."
-            ),
-        ]
+        var models = curatedModels()
+        let downloadedMap = storedDownloadedPaths()
 
-        // Check which are already downloaded
-        for i in models.indices {
-            let path = modelsDirectory.appendingPathComponent(models[i].filename).path
-            models[i].isDownloaded = FileManager.default.fileExists(atPath: path)
+        for index in models.indices {
+            if let storedPath = downloadedMap[models[index].id],
+               resolveStoredPath(storedPath) != nil {
+                models[index].isDownloaded = true
+            }
         }
 
-        // Also scan for any additional GGUF files in the models directory
-        if let files = try? FileManager.default.contentsOfDirectory(atPath: modelsDirectory.path) {
-            for file in files where file.hasSuffix(".gguf") {
-                if !models.contains(where: { $0.filename == file }) {
-                    models.append(ModelInfo(
-                        id: file,
-                        name: file.replacingOccurrences(of: ".gguf", with: ""),
-                        filename: file,
-                        url: "",
-                        size: fileSizeString(modelsDirectory.appendingPathComponent(file)),
-                        description: "Manually added model",
-                        isDownloaded: true
-                    ))
+        // Scan for local MLX model folders manually added to Documents/Models
+        if let contents = try? FileManager.default.contentsOfDirectory(
+            at: modelsDirectory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) {
+            for url in contents {
+                let isDir = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+                guard isDir, isMLXModelDirectory(url) else { continue }
+
+                if !models.contains(where: { $0.localPath == url.path }) {
+                    models.append(
+                        ModelInfo(
+                            id: url.lastPathComponent,
+                            name: url.lastPathComponent,
+                            repositoryID: nil,
+                            localPath: url.path,
+                            size: fileSizeString(url),
+                            description: "Local MLX model folder",
+                            isDownloaded: true
+                        )
+                    )
                 }
             }
         }
 
-        availableModels = models
-    }
-
-    func modelPath(for model: ModelInfo) -> String {
-        modelsDirectory.appendingPathComponent(model.filename).path
+        availableModels = models.sorted { lhs, rhs in
+            if lhs.isDownloaded != rhs.isDownloaded {
+                return lhs.isDownloaded && !rhs.isDownloaded
+            }
+            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        }
     }
 
     func downloadModel(_ model: ModelInfo) async throws {
-        guard let url = URL(string: model.url) else { throw ModelError.invalidURL }
+        guard let repositoryID = model.repositoryID else {
+            throw ModelError.invalidModelIdentifier
+        }
 
         isDownloading = true
         downloadingModelId = model.id
@@ -109,47 +89,45 @@ final class ModelManager: ObservableObject {
             downloadingModelId = nil
         }
 
-        let destination = modelsDirectory.appendingPathComponent(model.filename)
-
-        // Use URLSession delegate for progress tracking
-        let (asyncBytes, response) = try await URLSession.shared.bytes(from: url)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw ModelError.downloadFailed
-        }
-
-        let totalBytes = response.expectedContentLength
-        var downloadedBytes: Int64 = 0
-        var data = Data()
-        data.reserveCapacity(totalBytes > 0 ? Int(totalBytes) : 1_000_000_000)
-
-        for try await byte in asyncBytes {
-            data.append(byte)
-            downloadedBytes += 1
-
-            if downloadedBytes % (1024 * 1024) == 0 && totalBytes > 0 {
-                downloadProgress = Double(downloadedBytes) / Double(totalBytes)
+        let configuration = LLMModelFactory.shared.configuration(id: repositoryID)
+        let downloadedURL = try await MLXLMCommon.downloadModel(
+            hub: hub,
+            configuration: configuration,
+            progressHandler: { [weak self] progress in
+                Task { @MainActor in
+                    self?.downloadProgress = progress.fractionCompleted
+                }
             }
-        }
+        )
 
-        try data.write(to: destination)
+        var map = storedDownloadedPaths()
+        map[model.id] = relativePath(from: downloadedURL.path)
+        saveDownloadedPaths(map)
         downloadProgress = 1.0
-
-        // Update model list
         loadAvailableModels()
     }
 
     func cancelDownload() {
-        downloadTask?.cancel()
+        // Hub download cancellation is not currently wired through this view model.
         isDownloading = false
         downloadingModelId = nil
         downloadProgress = 0
     }
 
     func deleteModel(_ model: ModelInfo) throws {
-        let path = modelsDirectory.appendingPathComponent(model.filename)
-        try FileManager.default.removeItem(at: path)
+        if let localPath = model.localPath {
+            try FileManager.default.removeItem(atPath: localPath)
+        } else {
+            var map = storedDownloadedPaths()
+            if let storedPath = map[model.id],
+               let resolvedPath = resolveStoredPath(storedPath),
+               FileManager.default.fileExists(atPath: resolvedPath) {
+                try FileManager.default.removeItem(atPath: resolvedPath)
+            }
+            map.removeValue(forKey: model.id)
+            saveDownloadedPaths(map)
+        }
+
         loadAvailableModels()
     }
 
@@ -157,24 +135,133 @@ final class ModelManager: ObservableObject {
         availableModels.filter(\.isDownloaded)
     }
 
+    func localURL(for model: ModelInfo) -> URL? {
+        if let localPath = model.localPath {
+            return URL(fileURLWithPath: localPath)
+        }
+        if let storedPath = storedDownloadedPaths()[model.id],
+           let resolvedPath = resolveStoredPath(storedPath) {
+            return URL(fileURLWithPath: resolvedPath)
+        }
+        return nil
+    }
+
+    // MARK: - Private
+
+    private func curatedModels() -> [ModelInfo] {
+        [
+            ModelInfo(
+                id: "qwen25-coder-1.5b-instruct-4bit",
+                name: "Qwen 2.5 Coder 1.5B Instruct 4-bit",
+                repositoryID: "mlx-community/Qwen2.5-Coder-1.5B-Instruct-4bit",
+                localPath: nil,
+                size: "~1 GB",
+                description: "Compact coding-focused model optimized for code completion and generation on Apple Silicon."
+            ),
+            ModelInfo(
+                id: "gemma3n-e2b-it-4bit",
+                name: "Gemma 3n E2B Instruct 4-bit",
+                repositoryID: "mlx-community/gemma-3n-E2B-it-lm-4bit",
+                localPath: nil,
+                size: "~1.5 GB",
+                description: "Lightweight Gemma 3n with ~2B effective parameters for fast local inference."
+            ),
+            ModelInfo(
+                id: "gemma3-1b-it-qat-4bit",
+                name: "Gemma 3 1B Instruct QAT 4-bit",
+                repositoryID: "mlx-community/gemma-3-1b-it-qat-4bit",
+                localPath: nil,
+                size: "~700 MB",
+                description: "Ultra-compact Gemma 3 instruction model using quantization-aware training for quality at small size."
+            ),
+        ]
+    }
+
+    /// Convert an absolute path to a relative path (relative to modelsDirectory) for stable storage.
+    /// On iOS the app container UUID can change between launches, so absolute paths become stale.
+    private func relativePath(from absolutePath: String) -> String {
+        let base = modelsDirectory.path
+        if absolutePath.hasPrefix(base) {
+            var relative = String(absolutePath.dropFirst(base.count))
+            if relative.hasPrefix("/") {
+                relative = String(relative.dropFirst())
+            }
+            return relative
+        }
+        return absolutePath
+    }
+
+    /// Resolve a stored path (relative or legacy absolute) to a valid current absolute path.
+    /// Returns `nil` if the model directory no longer exists at either location.
+    private func resolveStoredPath(_ storedPath: String) -> String? {
+        // Try as relative to the current modelsDirectory first (preferred)
+        let resolved = modelsDirectory.appendingPathComponent(storedPath).path
+        if modelDirectoryExists(at: resolved) {
+            return resolved
+        }
+        // Fall back to treating it as an absolute path (legacy entries)
+        if modelDirectoryExists(at: storedPath) {
+            return storedPath
+        }
+        return nil
+    }
+
+    private func storedDownloadedPaths() -> [String: String] {
+        UserDefaults.standard.dictionary(forKey: downloadedPathsKey) as? [String: String] ?? [:]
+    }
+
+    private func saveDownloadedPaths(_ value: [String: String]) {
+        UserDefaults.standard.set(value, forKey: downloadedPathsKey)
+    }
+
+    private func modelDirectoryExists(at path: String) -> Bool {
+        let url = URL(fileURLWithPath: path)
+        return isMLXModelDirectory(url)
+    }
+
+    private func isMLXModelDirectory(_ url: URL) -> Bool {
+        let configURL = url.appendingPathComponent("config.json")
+        let tokenizerURL = url.appendingPathComponent("tokenizer.json")
+        let generationURL = url.appendingPathComponent("generation_config.json")
+
+        let hasConfig = FileManager.default.fileExists(atPath: configURL.path)
+        let hasTokenizer = FileManager.default.fileExists(atPath: tokenizerURL.path)
+            || FileManager.default.fileExists(atPath: generationURL.path)
+        let hasSafeTensors = (try? FileManager.default.contentsOfDirectory(atPath: url.path))?
+            .contains(where: { $0.hasSuffix(".safetensors") }) ?? false
+
+        return hasConfig && hasTokenizer && hasSafeTensors
+    }
+
     private func fileSizeString(_ url: URL) -> String {
-        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
-              let size = attrs[.size] as? Int64 else { return "Unknown" }
+        guard let enumerator = FileManager.default.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.fileSizeKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            return "Unknown"
+        }
+
+        var totalSize: Int64 = 0
+        for case let fileURL as URL in enumerator {
+            if let size = try? fileURL.resourceValues(forKeys: [.fileSizeKey]).fileSize {
+                totalSize += Int64(size)
+            }
+        }
 
         let formatter = ByteCountFormatter()
         formatter.countStyle = .file
-        return formatter.string(fromByteCount: size)
+        return formatter.string(fromByteCount: totalSize)
     }
 }
 
 enum ModelError: LocalizedError {
-    case invalidURL
-    case downloadFailed
+    case invalidModelIdentifier
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL: return "Invalid model download URL"
-        case .downloadFailed: return "Model download failed"
+        case .invalidModelIdentifier:
+            return "This model is missing its Hugging Face identifier."
         }
     }
 }

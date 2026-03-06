@@ -7,31 +7,33 @@ struct GitTerminalView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2) {
+                LazyVStack(alignment: .leading, spacing: 1) {
                     ForEach(Array(output.enumerated()), id: \.offset) { index, line in
                         Text(coloredLine(line))
-                            .font(.system(size: 13, design: .monospaced))
+                            .font(LC.code(12))
                             .textSelection(.enabled)
                             .id(index)
                     }
 
                     if isLoading {
-                        HStack(spacing: 6) {
+                        HStack(spacing: LC.spacingSM) {
                             ProgressView()
-                                .scaleEffect(0.6)
-                            Text("Working...")
-                                .font(.system(size: 13, design: .monospaced))
-                                .foregroundStyle(.yellow)
+                                .scaleEffect(0.5)
+                                .tint(LC.accent)
+                            Text("WORKING...")
+                                .font(LC.label(9))
+                                .tracking(1.5)
+                                .foregroundStyle(LC.accent)
                         }
                         .id("loading")
                     }
                 }
-                .padding(12)
+                .padding(LC.spacingMD)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .background(Color.black)
+            .background(LC.inverseSurface)
             .onChange(of: output.count) { _, _ in
-                withAnimation {
+                withAnimation(.easeOut(duration: 0.1)) {
                     proxy.scrollTo(output.count - 1, anchor: .bottom)
                 }
             }
@@ -42,19 +44,18 @@ struct GitTerminalView: View {
         var attributed = AttributedString(line)
 
         if line.hasPrefix("$") {
-            attributed.foregroundColor = .green
+            attributed.foregroundColor = UIColor(LC.accent)
         } else if line.hasPrefix("✅") {
-            attributed.foregroundColor = .green
+            attributed.foregroundColor = UIColor(LC.accent)
         } else if line.hasPrefix("❌") || line.lowercased().contains("error") {
-            attributed.foregroundColor = .red
+            attributed.foregroundColor = UIColor(LC.destructive)
         } else if line.hasPrefix("  ") && (line.contains("Downloading") || line.contains("Creating")) {
-            attributed.foregroundColor = .cyan
-        } else if line.contains("🔒") || line.contains("🌐") {
-            attributed.foregroundColor = .white
+            attributed.foregroundColor = UIColor(LC.secondary)
         } else if line.hasPrefix("╔") || line.hasPrefix("║") || line.hasPrefix("╠") || line.hasPrefix("╚") {
-            attributed.foregroundColor = .cyan
+            attributed.foregroundColor = UIColor(LC.accent)
         } else {
-            attributed.foregroundColor = .white.opacity(0.85)
+            // Use surface color (which is light in dark mode context of inverseSurface bg)
+            attributed.foregroundColor = UIColor(LC.surface)
         }
 
         return attributed

@@ -1,62 +1,70 @@
 import SwiftUI
 
-/// Renders text with inline code blocks that can be saved
+/// Renders text with inline code blocks — TE-inspired industrial style
 struct MarkdownCodeView: View {
     let text: String
     let onSaveCode: (CodeBlock) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: LC.spacingSM) {
             ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
                 switch segment {
                 case .text(let content):
                     Text(content)
-                        .font(.body)
-                        .foregroundStyle(.primary)
+                        .font(LC.body(14))
+                        .foregroundStyle(LC.primary)
 
                 case .code(let block):
                     VStack(alignment: .leading, spacing: 0) {
-                        // Header
-                        HStack {
-                            Text(block.language.isEmpty ? "code" : block.language)
-                                .font(.caption.monospaced().bold())
-                                .foregroundStyle(.green)
+                        // Header bar
+                        HStack(spacing: LC.spacingSM) {
+                            Text(block.language.isEmpty ? "CODE" : block.language.uppercased())
+                                .font(LC.label(9))
+                                .tracking(1.5)
+                                .foregroundStyle(LC.accent)
 
                             if let filename = block.filename {
-                                Text("· \(filename)")
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
+                                Rectangle()
+                                    .fill(LC.border)
+                                    .frame(width: 1, height: 12)
+                                Text(filename)
+                                    .font(LC.caption(10))
+                                    .foregroundStyle(LC.secondary)
                             }
 
                             Spacer()
 
                             Button(action: { copyToClipboard(block.code) }) {
                                 Image(systemName: "doc.on.doc")
-                                    .font(.caption)
+                                    .font(.system(size: 10, weight: .regular, design: .monospaced))
+                                    .foregroundStyle(LC.secondary)
                             }
 
                             Button(action: { onSaveCode(block) }) {
                                 Image(systemName: "square.and.arrow.down")
-                                    .font(.caption)
+                                    .font(.system(size: 10, weight: .regular, design: .monospaced))
+                                    .foregroundStyle(LC.secondary)
                             }
                         }
-                        .padding(.horizontal, 10)
+                        .padding(.horizontal, LC.spacingSM + 2)
                         .padding(.vertical, 6)
-                        .background(Color(.systemGray4))
+                        .background(LC.inverseSurface.opacity(0.06))
+
+                        Rectangle().fill(LC.border).frame(height: LC.borderWidth)
 
                         // Code content
                         ScrollView(.horizontal, showsIndicators: false) {
                             Text(block.code)
-                                .font(.system(size: 13, design: .monospaced))
-                                .foregroundStyle(.primary)
-                                .padding(10)
+                                .font(LC.code(12))
+                                .foregroundStyle(LC.primary)
+                                .padding(LC.spacingSM + 2)
                         }
-                        .background(Color(.systemGray6))
+                        .background(LC.surface)
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(.systemGray4), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: LC.radiusSM)
+                            .stroke(LC.border, lineWidth: LC.borderWidth)
                     )
                 }
             }
@@ -94,7 +102,6 @@ struct MarkdownCodeView: View {
             let lang = match.range(at: 1).location != NSNotFound ? nsString.substring(with: match.range(at: 1)) : ""
             let code = match.range(at: 2).location != NSNotFound ? nsString.substring(with: match.range(at: 2)).trimmingCharacters(in: .newlines) : ""
 
-            // Extract filename from first line comment
             var filename: String?
             let lines = code.components(separatedBy: "\n")
             if let first = lines.first {
