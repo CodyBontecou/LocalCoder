@@ -156,24 +156,42 @@ final class ModelManager: ObservableObject {
                 repositoryID: "mlx-community/Qwen2.5-Coder-1.5B-Instruct-4bit",
                 localPath: nil,
                 size: "~1 GB",
-                description: "Compact coding-focused model optimized for code completion and generation on Apple Silicon."
+                description: "Compact coding-focused model optimized for code completion and generation on Apple Silicon. Recommended."
             ),
             ModelInfo(
-                id: "gemma3n-e2b-it-4bit",
-                name: "Gemma 3n E2B Instruct 4-bit",
-                repositoryID: "mlx-community/gemma-3n-E2B-it-lm-4bit",
+                id: "qwen3-1.7b-4bit",
+                name: "Qwen 3 1.7B 4-bit",
+                repositoryID: "mlx-community/Qwen3-1.7B-4bit",
                 localPath: nil,
-                size: "~1.5 GB",
-                description: "Lightweight Gemma 3n with ~2B effective parameters for fast local inference."
+                size: "~1.1 GB",
+                description: "Latest Qwen 3 model with strong reasoning capabilities and fast inference."
             ),
             ModelInfo(
-                id: "gemma3-1b-it-qat-4bit",
-                name: "Gemma 3 1B Instruct QAT 4-bit",
-                repositoryID: "mlx-community/gemma-3-1b-it-qat-4bit",
+                id: "smollm3-3b-4bit",
+                name: "SmolLM3 3B 4-bit",
+                repositoryID: "mlx-community/SmolLM3-3B-4bit",
                 localPath: nil,
-                size: "~700 MB",
-                description: "Ultra-compact Gemma 3 instruction model using quantization-aware training for quality at small size."
+                size: "~1.8 GB",
+                description: "Efficient 3B parameter model with good coding and reasoning abilities."
             ),
+            // Note: Gemma 3 models have a known bug with sliding window attention on longer prompts.
+            // Uncomment when upstream fix is available in mlx-swift-lm.
+            // ModelInfo(
+            //     id: "gemma3n-e2b-it-4bit",
+            //     name: "Gemma 3n E2B Instruct 4-bit",
+            //     repositoryID: "mlx-community/gemma-3n-E2B-it-lm-4bit",
+            //     localPath: nil,
+            //     size: "~1.5 GB",
+            //     description: "Lightweight Gemma 3n with ~2B effective parameters for fast local inference."
+            // ),
+            // ModelInfo(
+            //     id: "gemma3-1b-it-qat-4bit",
+            //     name: "Gemma 3 1B Instruct QAT 4-bit",
+            //     repositoryID: "mlx-community/gemma-3-1b-it-qat-4bit",
+            //     localPath: nil,
+            //     size: "~700 MB",
+            //     description: "Ultra-compact Gemma 3 instruction model using quantization-aware training for quality at small size."
+            // ),
         ]
     }
 

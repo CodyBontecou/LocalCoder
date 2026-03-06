@@ -20,9 +20,11 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            LCTabBar(selectedTab: $selectedTab)
+            LCAccessoryBar(selectedTab: $selectedTab, onDismissKeyboard: {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            })
         }
-        .background(LC.surface)
+        .background(LC.surface.ignoresSafeArea())
         .tint(LC.accent)
         .task {
             await llmService.autoLoadLastModel()

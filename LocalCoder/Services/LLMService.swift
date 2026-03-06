@@ -433,6 +433,60 @@ final class LLMService: ObservableObject {
         )
     }
 
+    /// Restore the chat session with a previous conversation history.
+    /// This re-hydrates the KV cache so the model has context of past messages.
+    ///
+    /// - Parameters:
+    ///   - history: Array of `Chat.Message` representing the conversation history.
+    ///   - context: Optional dynamic context (e.g. file listings) to include in system instructions.
+    func restoreSession(with history: [Chat.Message], context: String? = nil) {
+        guard let modelContainer else {
+            debugConsole.log(
+                "Cannot restore session without a loaded model",
+                category: .llm,
+                level: .error
+            )
+            return
+        }
+
+        // Reset any existing session first
+        chatSession = nil
+        sessionTurnCount = 0
+        Memory.clearCache()
+
+        // Build instructions with optional context
+        let instructions: String
+        if let context, !context.isEmpty {
+            instructions = Self.systemPrompt + "\n\n" + context
+        } else {
+            instructions = Self.systemPrompt
+        }
+
+        // Create session with history for prompt re-hydration
+        var parameters = GenerateParameters()
+        parameters.maxTokens = 4096
+        parameters.temperature = 0.3
+        parameters.topP = 0.9
+
+        chatSession = ChatSession(
+            modelContainer,
+            instructions: instructions,
+            history: history,
+            generateParameters: parameters
+        )
+
+        // Count existing turns (each user+assistant pair is one turn)
+        let userMessageCount = history.filter { $0.role == .user }.count
+        sessionTurnCount = userMessageCount
+
+        debugConsole.log(
+            "Restored chat session with history",
+            category: .llm,
+            level: .debug,
+            details: "history_messages=\(history.count)\nsession_turns=\(sessionTurnCount)"
+        )
+    }
+
     // MARK: - Helpers
 
     /// The system prompt that instructs the LLM how to use tools.

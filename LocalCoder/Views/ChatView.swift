@@ -93,60 +93,8 @@ struct ChatView: View {
                 // Input
                 inputBar
             }
-            .background(LC.surface)
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("LOCALCODER")
-                        .font(LC.label(12))
-                        .tracking(2)
-                        .foregroundStyle(LC.primary)
-                }
-                ToolbarItemGroup(placement: .topBarLeading) {
-                    Button(action: { showConversationList = true }) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 14, weight: .regular, design: .monospaced))
-                            .foregroundStyle(LC.secondary)
-                    }
-
-                    Button(action: { viewModel.newConversation() }) {
-                        Image(systemName: "square.and.pencil")
-                            .font(.system(size: 14, weight: .regular, design: .monospaced))
-                            .foregroundStyle(LC.secondary)
-                    }
-                }
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button(action: {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            showDebugPanel.toggle()
-                            if showDebugPanel {
-                                isDebugPanelExpanded = true
-                            }
-                        }
-                    }) {
-                        Image(systemName: debugConsole.errorCount > 0 ? "ant.circle.fill" : "ant")
-                            .font(.system(size: 14, weight: .regular, design: .monospaced))
-                            .foregroundStyle(debugConsole.errorCount > 0 ? LC.accent : LC.secondary)
-                    }
-
-                    NavigationLink(destination: ModelManagerView()) {
-                        Image(systemName: "cpu")
-                            .font(.system(size: 14, weight: .regular, design: .monospaced))
-                            .foregroundStyle(LC.secondary)
-                    }
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button(action: { isInputFocused = false }) {
-                        Image(systemName: "keyboard.chevron.compact.down")
-                            .font(.system(size: 14, design: .monospaced))
-                            .foregroundStyle(LC.secondary)
-                    }
-                    .accessibilityLabel("Hide keyboard")
-                }
-            }
-            .toolbarBackground(LC.surfaceElevated, for: .navigationBar)
+            .background(LC.surface.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showSaveSheet) {
                 saveCodeSheet
             }
@@ -198,10 +146,7 @@ struct ChatView: View {
         }
         .padding(.horizontal, LC.spacingMD)
         .padding(.vertical, 6)
-        .background(LC.surfaceElevated)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(LC.border).frame(height: LC.borderWidth)
-        }
+        .background(Color(red: 0.965, green: 0.949, blue: 0.925)) // #F6F2EC
     }
 
     // MARK: - Directory Strip
@@ -225,7 +170,7 @@ struct ChatView: View {
                     .foregroundStyle(LC.secondary)
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
-                    .background(LC.surfaceElevated)
+                    .background(LC.surface)
                     .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
 
                 Spacer()
@@ -265,10 +210,7 @@ struct ChatView: View {
         }
         .padding(.horizontal, LC.spacingMD)
         .padding(.vertical, 5)
-        .background(LC.surface)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(LC.border).frame(height: LC.borderWidth)
-        }
+        .background(Color(red: 0.965, green: 0.949, blue: 0.925)) // #F6F2EC
     }
 
     // MARK: - Input Bar
@@ -280,12 +222,8 @@ struct ChatView: View {
                 .lineLimit(1...5)
                 .focused($isInputFocused)
                 .padding(LC.spacingSM + 2)
-                .background(LC.surface)
+                .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
-                .overlay(
-                    RoundedRectangle(cornerRadius: LC.radiusSM)
-                        .stroke(LC.border, lineWidth: LC.borderWidth)
-                )
                 .onSubmit {
                     if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         viewModel.sendMessage()
@@ -311,10 +249,7 @@ struct ChatView: View {
         }
         .padding(.horizontal, LC.spacingMD)
         .padding(.vertical, LC.spacingSM)
-        .background(LC.surfaceElevated)
-        .overlay(alignment: .top) {
-            Rectangle().fill(LC.border).frame(height: LC.borderWidth)
-        }
+        .background(LC.surface)
     }
 
     // MARK: - Save Sheet

@@ -180,6 +180,46 @@ struct LCTabBar: View {
     }
 }
 
+// MARK: - Keyboard Accessory Bar (Termius-style)
+
+struct LCAccessoryBar: View {
+    @Binding var selectedTab: LCTab
+    let onDismissKeyboard: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            // Tab buttons
+            ForEach(LCTab.allCases, id: \.rawValue) { tab in
+                Button(action: { selectedTab = tab }) {
+                    Image(systemName: tab.icon)
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(selectedTab == tab ? LC.accent : Color(UIColor.secondaryLabel))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 38)
+                }
+                .buttonStyle(.plain)
+            }
+            
+            // Divider
+            Rectangle()
+                .fill(Color(UIColor.separator))
+                .frame(width: 1, height: 20)
+                .padding(.horizontal, 4)
+            
+            // Keyboard dismiss button
+            Button(action: onDismissKeyboard) {
+                Image(systemName: "keyboard.chevron.compact.down")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Color(UIColor.secondaryLabel))
+                    .frame(width: 44, height: 38)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, LC.spacingSM)
+        .background(Color(red: 0.965, green: 0.949, blue: 0.925)) // #F6F2EC
+    }
+}
+
 // MARK: - Reusable Components
 
 struct LCStatusDot: View {

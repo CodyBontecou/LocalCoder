@@ -6,17 +6,67 @@ struct SettingsView: View {
     @AppStorage("git_author_name") private var gitAuthorName = ""
     @AppStorage("git_author_email") private var gitAuthorEmail = ""
     @StateObject private var gitSync = GitSyncManager.shared
+    @EnvironmentObject var debugConsole: DebugConsole
     @State private var githubToken: String = ""
     @State private var showToken = false
     @State private var showTokenHelp = false
     @State private var cloneURL = ""
     @State private var cloneError: String?
     @State private var commitMessage = ""
+    @State private var showModelManager = false
+    @State private var showConversationList = false
+    @State private var showDebugPanel = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: LC.spacingLG) {
+                    // Tools
+                    settingsSection("TOOLS") {
+                        VStack(spacing: LC.spacingSM) {
+                            // Conversation History
+                            Button(action: { showConversationList = true }) {
+                                toolRow(icon: "clock.arrow.circlepath", label: "CONVERSATION HISTORY", detail: "View past conversations")
+                            }
+
+                            // Model Manager
+                            Button(action: { showModelManager = true }) {
+                                toolRow(icon: "cpu", label: "MODEL MANAGER", detail: "Download and manage AI models")
+                            }
+
+                            // Debug Console
+                            Button(action: { showDebugPanel = true }) {
+                                HStack(spacing: LC.spacingSM) {
+                                    Image(systemName: debugConsole.errorCount > 0 ? "ant.circle.fill" : "ant")
+                                        .font(.system(size: 14, weight: .regular, design: .monospaced))
+                                        .foregroundStyle(debugConsole.errorCount > 0 ? LC.accent : LC.secondary)
+                                        .frame(width: 24)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("DEBUG CONSOLE")
+                                            .font(LC.label(10))
+                                            .tracking(1)
+                                            .foregroundStyle(LC.primary)
+                                        Text(debugConsole.errorCount > 0 ? "\(debugConsole.errorCount) error(s)" : "View debug logs")
+                                            .font(LC.caption(10))
+                                            .foregroundStyle(debugConsole.errorCount > 0 ? LC.accent : LC.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(LC.secondary)
+                                }
+                                .padding(LC.spacingSM + 2)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: LC.radiusSM)
+                                        .stroke(debugConsole.errorCount > 0 ? LC.accent.opacity(0.3) : LC.border, lineWidth: LC.borderWidth)
+                                )
+                            }
+                        }
+                    }
+
                     // GitHub
                     settingsSection("GITHUB ACCOUNT") {
                         VStack(spacing: LC.spacingSM) {
@@ -347,6 +397,42 @@ struct SettingsView: View {
             .sheet(isPresented: $showTokenHelp) {
                 tokenHelpSheet
             }
+            .sheet(isPresented: $showModelManager) {
+                NavigationStack {
+                    ModelManagerView()
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") { showModelManager = false }
+                                    .font(LC.body(14))
+                                    .foregroundStyle(LC.accent)
+                            }
+                        }
+                }
+            }
+            .sheet(isPresented: $showConversationList) {
+                ConversationListView(viewModel: ChatViewModel())
+            }
+            .sheet(isPresented: $showDebugPanel) {
+                NavigationStack {
+                    DebugPanelView(console: debugConsole, isExpanded: .constant(true))
+                        .navigationTitle("")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .principal) {
+                                Text("DEBUG CONSOLE")
+                                    .font(LC.label(12))
+                                    .tracking(2)
+                                    .foregroundStyle(LC.primary)
+                            }
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") { showDebugPanel = false }
+                                    .font(LC.body(14))
+                                    .foregroundStyle(LC.accent)
+                            }
+                        }
+                        .toolbarBackground(LC.surfaceElevated, for: .navigationBar)
+                }
+            }
         }
     }
 
@@ -400,6 +486,36 @@ struct SettingsView: View {
                 .foregroundStyle(LC.primary)
         }
         .padding(LC.spacingSM + 2)
+    }
+
+    private func toolRow(icon: String, label: String, detail: String) -> some View {
+        HStack(spacing: LC.spacingSM) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .regular, design: .monospaced))
+                .foregroundStyle(LC.secondary)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(LC.label(10))
+                    .tracking(1)
+                    .foregroundStyle(LC.primary)
+                Text(detail)
+                    .font(LC.caption(10))
+                    .foregroundStyle(LC.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundStyle(LC.secondary)
+        }
+        .padding(LC.spacingSM + 2)
+        .overlay(
+            RoundedRectangle(cornerRadius: LC.radiusSM)
+                .stroke(LC.border, lineWidth: LC.borderWidth)
+        )
     }
 
     private func aboutRow(_ title: String, _ value: String) -> some View {
