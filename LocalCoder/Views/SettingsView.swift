@@ -5,6 +5,7 @@ struct SettingsView: View {
     @AppStorage("default_project") private var defaultProject = ""
     @AppStorage("git_author_name") private var gitAuthorName = ""
     @AppStorage("git_author_email") private var gitAuthorEmail = ""
+    @AppStorage("show_debug_console") private var showDebugConsole = false
     @StateObject private var gitSync = GitSyncManager.shared
     @EnvironmentObject var debugConsole: DebugConsole
     @State private var githubToken: String = ""
@@ -15,7 +16,6 @@ struct SettingsView: View {
     @State private var commitMessage = ""
     @State private var showModelManager = false
     @State private var showConversationList = false
-    @State private var showDebugPanel = false
 
     var body: some View {
         NavigationStack {
@@ -34,36 +34,34 @@ struct SettingsView: View {
                                 toolRow(icon: "cpu", label: "MODEL MANAGER", detail: "Download and manage AI models")
                             }
 
-                            // Debug Console
-                            Button(action: { showDebugPanel = true }) {
-                                HStack(spacing: LC.spacingSM) {
-                                    Image(systemName: debugConsole.errorCount > 0 ? "ant.circle.fill" : "ant")
-                                        .font(.system(size: 14, weight: .regular, design: .monospaced))
+                            // Debug Console Toggle
+                            HStack(spacing: LC.spacingSM) {
+                                Image(systemName: debugConsole.errorCount > 0 ? "ant.circle.fill" : "ant")
+                                    .font(.system(size: 14, weight: .regular, design: .monospaced))
+                                    .foregroundStyle(debugConsole.errorCount > 0 ? LC.accent : LC.secondary)
+                                    .frame(width: 24)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("DEBUG CONSOLE")
+                                        .font(LC.label(10))
+                                        .tracking(1)
+                                        .foregroundStyle(LC.primary)
+                                    Text(debugConsole.errorCount > 0 ? "\(debugConsole.errorCount) error(s)" : "Show in chat view")
+                                        .font(LC.caption(10))
                                         .foregroundStyle(debugConsole.errorCount > 0 ? LC.accent : LC.secondary)
-                                        .frame(width: 24)
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("DEBUG CONSOLE")
-                                            .font(LC.label(10))
-                                            .tracking(1)
-                                            .foregroundStyle(LC.primary)
-                                        Text(debugConsole.errorCount > 0 ? "\(debugConsole.errorCount) error(s)" : "View debug logs")
-                                            .font(LC.caption(10))
-                                            .foregroundStyle(debugConsole.errorCount > 0 ? LC.accent : LC.secondary)
-                                    }
-
-                                    Spacer()
-
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                        .foregroundStyle(LC.secondary)
                                 }
-                                .padding(LC.spacingSM + 2)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: LC.radiusSM)
-                                        .stroke(debugConsole.errorCount > 0 ? LC.accent.opacity(0.3) : LC.border, lineWidth: LC.borderWidth)
-                                )
+
+                                Spacer()
+
+                                Toggle("", isOn: $showDebugConsole)
+                                    .labelsHidden()
+                                    .tint(LC.accent)
                             }
+                            .padding(LC.spacingSM + 2)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: LC.radiusSM)
+                                    .stroke(debugConsole.errorCount > 0 ? LC.accent.opacity(0.3) : LC.border, lineWidth: LC.borderWidth)
+                            )
                         }
                     }
 
@@ -412,27 +410,7 @@ struct SettingsView: View {
             .sheet(isPresented: $showConversationList) {
                 ConversationListView(viewModel: ChatViewModel())
             }
-            .sheet(isPresented: $showDebugPanel) {
-                NavigationStack {
-                    DebugPanelView(console: debugConsole, isExpanded: .constant(true))
-                        .navigationTitle("")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .principal) {
-                                Text("DEBUG CONSOLE")
-                                    .font(LC.label(12))
-                                    .tracking(2)
-                                    .foregroundStyle(LC.primary)
-                            }
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Done") { showDebugPanel = false }
-                                    .font(LC.body(14))
-                                    .foregroundStyle(LC.accent)
-                            }
-                        }
-                        .toolbarBackground(LC.surfaceElevated, for: .navigationBar)
-                }
-            }
+
         }
     }
 

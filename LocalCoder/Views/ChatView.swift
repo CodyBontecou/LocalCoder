@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 struct ChatView: View {
     @EnvironmentObject var llmService: LLMService
     @EnvironmentObject var debugConsole: DebugConsole
+    @AppStorage("show_debug_console") private var showDebugConsole = false
     @StateObject private var viewModel = ChatViewModel()
     @StateObject private var workingDir = WorkingDirectoryService.shared
     @StateObject private var gitSync = GitSyncManager.shared
@@ -12,8 +13,7 @@ struct ChatView: View {
     @State private var saveFilename = ""
     @State private var saveProject = ""
     @State private var showFolderPicker = false
-    @State private var isDebugPanelExpanded = false
-    @State private var showDebugPanel = false
+    @State private var isDebugPanelExpanded = true
     @State private var showConversationList = false
     @FocusState private var isInputFocused: Bool
 
@@ -86,7 +86,7 @@ struct ChatView: View {
                     }
                 }
 
-                if showDebugPanel {
+                if showDebugConsole {
                     DebugPanelView(console: debugConsole, isExpanded: $isDebugPanelExpanded)
                 }
 
