@@ -31,28 +31,57 @@ final class ChatViewModel: ObservableObject {
 
     /// Builds a context string describing the user's project for inclusion
     /// in the LLM's system instructions.
+    ///
+    /// The output is capped at `LLMService.maxContextCharacters` to prevent
+    /// the prompt from consuming too much of the model's context window
+    /// (and by extension, too much memory for the KV cache).
     private func contextString() -> String? {
+        let maxChars = LLMService.maxContextCharacters
+
         if gitSync.hasActiveRepo {
-            let files = gitSync.listFiles(maxDepth: 3)
+            let files = gitSync.listFiles(maxDepth: 2)
             if !files.isEmpty {
-                let listing = files.joined(separator: "\n")
-                return "The user's project directory is: \(gitSync.activeRepoName) (git repo)\n\nProject files:\n\(listing)"
+                let header = "The user's project directory is: \(gitSync.activeRepoName) (git repo)\n\nProject files:\n"
+                let listing = truncatedListing(files, budget: maxChars - header.count)
+                return header + listing
             }
         } else if workingDir.workingDirectoryURL != nil {
-            let files = workingDir.listFiles(maxDepth: 3)
+            let files = workingDir.listFiles(maxDepth: 2)
             if !files.isEmpty {
-                let listing = files.joined(separator: "\n")
-                return "The user's project directory is: \(workingDir.workingDirectoryName)\n\nProject files:\n\(listing)"
+                let header = "The user's project directory is: \(workingDir.workingDirectoryName)\n\nProject files:\n"
+                let listing = truncatedListing(files, budget: maxChars - header.count)
+                return header + listing
             }
         } else {
             let files = fileService.listFiles()
             let listing = files.map { $0.isDirectory ? "📁 \($0.name)/" : "  \($0.name)" }
                 .joined(separator: "\n")
-            return "The user's project directory is: LocalCoder. All file paths are relative to the LocalCoder directory."
-                + (listing.isEmpty ? "" : "\n\nProject files:\n\(listing)")
+            let header = "The user's project directory is: LocalCoder. All file paths are relative to the LocalCoder directory."
+            let result = header + (listing.isEmpty ? "" : "\n\nProject files:\n\(listing)")
+            if result.count > maxChars {
+                return String(result.prefix(maxChars)) + "\n... (truncated)"
+            }
+            return result
         }
 
         return nil
+    }
+
+    /// Join file paths into a listing, truncating to fit within `budget` characters.
+    private func truncatedListing(_ files: [String], budget: Int) -> String {
+        guard budget > 0 else { return "(file listing omitted to save memory)" }
+        var result = ""
+        var count = 0
+        for file in files {
+            let line = file + "\n"
+            if result.count + line.count > budget {
+                result += "... (\(files.count - count) more files)"
+                break
+            }
+            result += line
+            count += 1
+        }
+        return result
     }
 
     // MARK: - Sending Messages
@@ -88,12 +117,25 @@ final class ChatViewModel: ObservableObject {
     /// Uses a persistent `ChatSession` via `LLMService` so the KV cache is
     /// extended incrementally rather than rebuilt from scratch each turn.
     /// This prevents the O(n²) memory growth that caused crashes in long conversations.
+    /// Maximum characters for tool feedback sent back to the model in a single round.
+    private let maxToolFeedbackCharacters = 8_000
+
     private func runGenerationLoop() async {
         var round = 0
         let context = contextString()
 
         while round < maxToolRounds {
             round += 1
+
+            // Check memory pressure before each round — if high, skip further tool rounds
+            if round > 1, llm.isMemoryPressureHigh() {
+                debugConsole.log(
+                    "Skipping tool round \(round) due to high memory pressure",
+                    category: .tools,
+                    level: .warning
+                )
+                break
+            }
 
             // Determine what message to send to the model
             let content: String
@@ -115,7 +157,13 @@ final class ChatViewModel: ObservableObject {
                     debugConsole.log("No tool feedback to send", category: .chat, level: .error)
                     break
                 }
-                content = feedbackMsg.content
+                // Truncate large tool feedback to keep memory bounded
+                if feedbackMsg.content.count > maxToolFeedbackCharacters {
+                    content = String(feedbackMsg.content.prefix(maxToolFeedbackCharacters))
+                        + "\n\n... (output truncated to save memory)"
+                } else {
+                    content = feedbackMsg.content
+                }
                 role = .user  // Send tool feedback as user role for better compatibility with small models
             }
 

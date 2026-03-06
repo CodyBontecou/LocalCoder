@@ -58,8 +58,13 @@ final class ToolExecutor {
         guard let content = fileService.readFile(at: fullPath) else {
             throw ToolError.fileNotFound(path)
         }
-        // Truncate very large files to keep context manageable
+        // Truncate very large files to keep context (and KV cache memory) manageable.
+        // On iOS, smaller is better — every extra token grows the KV cache in GPU memory.
+        #if os(iOS)
+        let maxChars = 6_000
+        #else
         let maxChars = 12_000
+        #endif
         let truncated = content.count > maxChars
         let output = truncated
             ? String(content.prefix(maxChars)) + "\n\n... (truncated, \(content.count) total characters)"

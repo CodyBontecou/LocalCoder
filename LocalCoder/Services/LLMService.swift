@@ -3,6 +3,9 @@ import Jinja
 import MLX
 import MLXLLM
 import MLXLMCommon
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Manages an on-device MLX language model for code generation.
 @MainActor
@@ -20,8 +23,17 @@ final class LLMService: ObservableObject {
     private let debugConsole = DebugConsole.shared
 
     /// Maximum number of turns before resetting the session to reclaim memory.
-    /// Each user message + assistant response counts as roughly 2 turns.
+    /// On iOS we keep this low because the KV cache grows with each turn and
+    /// iPhones have much tighter memory limits than Macs.
+    #if os(iOS)
+    private let maxSessionTurns = 12
+    #else
     private let maxSessionTurns = 40
+    #endif
+
+    /// Maximum characters allowed for the context string injected into system instructions.
+    /// Keeps the prompt from ballooning when the user opens a large repo.
+    static let maxContextCharacters = 4_000
 
     private let lastModelKey = "last_loaded_model_id"
 
@@ -29,7 +41,83 @@ final class LLMService: ObservableObject {
 
     private init() {
         applyDefaultMemoryTuning(logEvent: false)
+        observeMemoryWarnings()
         debugConsole.log("LLM service initialized", category: .llm, level: .debug)
+    }
+
+    // MARK: - Memory Warning Handling
+
+    private func observeMemoryWarnings() {
+        #if canImport(UIKit)
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleMemoryWarning()
+            }
+        }
+        #endif
+    }
+
+    /// Respond to iOS memory warnings by aggressively freeing GPU memory.
+    /// If we're not mid-generation, reset the chat session entirely (drops the KV cache).
+    /// If we are generating, at least clear the MLX allocator cache.
+    private func handleMemoryWarning() {
+        let snapshot = Memory.snapshot()
+        debugConsole.log(
+            "Received iOS memory warning",
+            category: .app,
+            level: .warning,
+            details: "is_generating=\(isGenerating)\nsession_turns=\(sessionTurnCount)\n\(memorySnapshotReport(snapshot))"
+        )
+
+        if !isGenerating {
+            // Safe to nuke the full session — frees the KV cache
+            chatSession = nil
+            sessionTurnCount = 0
+            Memory.clearCache()
+            debugConsole.log(
+                "Freed chat session in response to memory warning",
+                category: .app,
+                level: .warning,
+                details: memorySnapshotReport(Memory.snapshot())
+            )
+        } else {
+            // Mid-generation: clear what we can without breaking the stream
+            Memory.clearCache()
+            debugConsole.log(
+                "Cleared MLX cache during generation (memory warning)",
+                category: .app,
+                level: .warning
+            )
+        }
+    }
+
+    /// Returns `true` when memory pressure is high enough that starting a new
+    /// generation is risky. Call before kicking off `generate()`.
+    func isMemoryPressureHigh() -> Bool {
+        let deviceInfo = GPU.deviceInfo()
+        let recommendedWorkingSet = Int64(clamping: deviceInfo.maxRecommendedWorkingSetSize)
+        guard recommendedWorkingSet > 0 else { return false }
+
+        let snapshot = Memory.snapshot()
+        let activeBytes = Int64(clamping: snapshot.activeMemory)
+
+        // If we're already using more than 80% of the recommended working set, bail
+        let threshold = Double(recommendedWorkingSet) * 0.80
+        let isHigh = Double(activeBytes) > threshold
+
+        if isHigh {
+            debugConsole.log(
+                "Memory pressure is HIGH",
+                category: .app,
+                level: .warning,
+                details: "active=\(formatByteCount(activeBytes))\nrecommended_limit=\(formatByteCount(recommendedWorkingSet))\nthreshold=80%"
+            )
+        }
+        return isHigh
     }
 
     // MARK: - Model Loading
@@ -212,6 +300,20 @@ final class LLMService: ObservableObject {
                 details: "turns=\(sessionTurnCount)\nlimit=\(maxSessionTurns)"
             )
             resetChat()
+        }
+
+        // If memory pressure is already high, try resetting the session first.
+        // If that's still not enough, warn but continue (the generation may OOM,
+        // but the memory-warning handler will try to recover).
+        if isMemoryPressureHigh() {
+            if sessionTurnCount > 0 {
+                debugConsole.log(
+                    "High memory pressure — resetting session before generation",
+                    category: .llm,
+                    level: .warning
+                )
+                resetChat()
+            }
         }
 
         // Build instructions: static system prompt + optional dynamic context
@@ -406,17 +508,43 @@ final class LLMService: ObservableObject {
         let cacheLimit = 128 * 1024 * 1024
         #endif
 
-        let previousValue = Memory.cacheLimit
-        guard previousValue != cacheLimit else { return }
+        let previousCacheLimit = Memory.cacheLimit
+        let cacheChanged = previousCacheLimit != cacheLimit
 
-        Memory.cacheLimit = cacheLimit
+        if cacheChanged {
+            Memory.cacheLimit = cacheLimit
+        }
 
-        if logEvent {
+        // On iOS, also constrain the overall memory limit to prevent MLX from
+        // allocating past what the OS will tolerate before jetsam kills us.
+        #if os(iOS)
+        let deviceInfo = GPU.deviceInfo()
+        let recommendedWorkingSet = Int64(clamping: deviceInfo.maxRecommendedWorkingSetSize)
+        if recommendedWorkingSet > 0 {
+            // Use 75% of the recommended working set as the hard MLX memory limit.
+            // This leaves headroom for UIKit, the system, and other frameworks.
+            let memoryLimit = Int(Double(recommendedWorkingSet) * 0.75)
+            let previousMemoryLimit = Memory.memoryLimit
+            if previousMemoryLimit != memoryLimit {
+                Memory.memoryLimit = memoryLimit
+                if logEvent {
+                    debugConsole.log(
+                        "Updated MLX memory limit",
+                        category: .model,
+                        level: .debug,
+                        details: "previous=\(formatByteCount(Int64(previousMemoryLimit)))\ncurrent=\(formatByteCount(Int64(memoryLimit)))\nrecommended_working_set=\(formatByteCount(recommendedWorkingSet))"
+                    )
+                }
+            }
+        }
+        #endif
+
+        if cacheChanged, logEvent {
             debugConsole.log(
                 "Updated MLX cache limit",
                 category: .model,
                 level: .debug,
-                details: "previous=\(formatByteCount(Int64(previousValue)))\ncurrent=\(formatByteCount(Int64(cacheLimit)))"
+                details: "previous=\(formatByteCount(Int64(previousCacheLimit)))\ncurrent=\(formatByteCount(Int64(cacheLimit)))"
             )
         }
     }
