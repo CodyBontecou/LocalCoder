@@ -6,12 +6,20 @@ struct ModelManagerView: View {
     @State private var showDeleteConfirm = false
     @State private var modelToDelete: ModelInfo?
     @State private var loadErrorMessage: String?
+    @State private var customModelInput: String = ""
+    @State private var customModelError: String?
+    @State private var isAddingCustomModel = false
+    @State private var showRemoveCustomConfirm = false
+    @State private var customModelToRemove: ModelInfo?
 
     var body: some View {
         ScrollView {
             VStack(spacing: LC.spacingLG) {
                 // Status card
                 statusCard
+
+                // Add custom model
+                customModelSection
 
                 // Models list
                 modelsSection
@@ -43,6 +51,14 @@ struct ModelManagerView: View {
             Button("Cancel", role: .cancel) {}
         } message: { model in
             Text("Remove \(model.name) from device.")
+        }
+        .alert("Remove Custom Model?", isPresented: $showRemoveCustomConfirm, presenting: customModelToRemove) { model in
+            Button("Remove", role: .destructive) {
+                try? modelManager.removeCustomModel(model)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { model in
+            Text("Remove \(model.name) from your custom models list.")
         }
         .alert(
             "Load Error",
@@ -142,9 +158,22 @@ struct ModelManagerView: View {
         VStack(alignment: .leading, spacing: LC.spacingSM) {
             HStack(alignment: .top, spacing: LC.spacingMD - 4) {
                 VStack(alignment: .leading, spacing: LC.spacingXS) {
-                    Text(model.name)
-                        .font(LC.body(13))
-                        .foregroundStyle(LC.primary)
+                    HStack(spacing: LC.spacingXS) {
+                        Text(model.name)
+                            .font(LC.body(13))
+                            .foregroundStyle(LC.primary)
+
+                        if model.isCustom {
+                            Text("CUSTOM")
+                                .font(LC.label(7))
+                                .tracking(0.5)
+                                .foregroundStyle(LC.accent)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 2)
+                                .background(LC.accent.opacity(0.15))
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                        }
+                    }
 
                     Text(model.description)
                         .font(LC.caption(11))
@@ -225,6 +254,17 @@ struct ModelManagerView: View {
 
                 Spacer()
 
+                if model.isCustom {
+                    Button(action: {
+                        customModelToRemove = model
+                        showRemoveCustomConfirm = true
+                    }) {
+                        Image(systemName: "xmark.circle")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(LC.secondary)
+                    }
+                }
+
                 Button(action: {
                     modelToDelete = model
                     showDeleteConfirm = true
@@ -235,27 +275,139 @@ struct ModelManagerView: View {
                 }
             }
         } else {
-            Button(action: {
-                Task { try? await modelManager.downloadModel(model) }
-            }) {
-                HStack(spacing: LC.spacingSM) {
-                    Image(systemName: "arrow.down")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    Text("DOWNLOAD")
-                        .font(LC.label(10))
-                        .tracking(1)
+            HStack(spacing: LC.spacingSM) {
+                Button(action: {
+                    Task { try? await modelManager.downloadModel(model) }
+                }) {
+                    HStack(spacing: LC.spacingSM) {
+                        Image(systemName: "arrow.down")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        Text("DOWNLOAD")
+                            .font(LC.label(10))
+                            .tracking(1)
+                    }
+                    .foregroundStyle(LC.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, LC.spacingSM)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: LC.radiusSM)
+                            .stroke(LC.accent, lineWidth: LC.borderWidth)
+                    )
                 }
-                .foregroundStyle(LC.accent)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, LC.spacingSM)
-                .overlay(
-                    RoundedRectangle(cornerRadius: LC.radiusSM)
-                        .stroke(LC.accent, lineWidth: LC.borderWidth)
-                )
+                .disabled(modelManager.isDownloading)
+                .opacity(modelManager.isDownloading ? 0.35 : 1)
+
+                if model.isCustom {
+                    Button(action: {
+                        customModelToRemove = model
+                        showRemoveCustomConfirm = true
+                    }) {
+                        Image(systemName: "xmark.circle")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(LC.secondary)
+                    }
+                    .frame(width: 32)
+                }
             }
-            .disabled(modelManager.isDownloading)
-            .opacity(modelManager.isDownloading ? 0.35 : 1)
         }
+    }
+
+    // MARK: - Custom Model Section
+
+    private var customModelSection: some View {
+        VStack(alignment: .leading, spacing: LC.spacingSM) {
+            Text("ADD CUSTOM MODEL")
+                .font(LC.label(10))
+                .tracking(2)
+                .foregroundStyle(LC.secondary)
+                .padding(.leading, 2)
+
+            VStack(spacing: LC.spacingMD) {
+                VStack(alignment: .leading, spacing: LC.spacingXS) {
+                    Text("HuggingFace URL or Repository ID")
+                        .font(LC.caption(11))
+                        .foregroundStyle(LC.secondary)
+
+                    HStack(spacing: LC.spacingSM) {
+                        TextField("mlx-community/model-name", text: $customModelInput)
+                            .font(LC.body(13))
+                            .foregroundStyle(LC.primary)
+                            .autocapitalization(.none)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .padding(LC.spacingSM)
+                            .background(LC.surface)
+                            .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: LC.radiusSM)
+                                    .stroke(LC.border, lineWidth: LC.borderWidth)
+                            )
+
+                        Button(action: addCustomModel) {
+                            if isAddingCustomModel {
+                                ProgressView()
+                                    .tint(LC.accent)
+                            } else {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(LC.accent)
+                            }
+                        }
+                        .disabled(customModelInput.isEmpty || isAddingCustomModel)
+                        .opacity(customModelInput.isEmpty ? 0.4 : 1)
+                        .frame(width: 44, height: 44)
+                        .background(LC.surface)
+                        .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: LC.radiusSM)
+                                .stroke(LC.accent, lineWidth: LC.borderWidth)
+                        )
+                    }
+
+                    if let error = customModelError {
+                        Text(error)
+                            .font(LC.caption(10))
+                            .foregroundStyle(LC.destructive)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: LC.spacingXS) {
+                    Text("Examples:")
+                        .font(LC.label(9))
+                        .foregroundStyle(LC.secondary)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("• mlx-community/Llama-3.2-1B-Instruct-4bit")
+                            .font(LC.caption(10))
+                            .foregroundStyle(LC.secondary.opacity(0.8))
+                        Text("• https://huggingface.co/mlx-community/...")
+                            .font(LC.caption(10))
+                            .foregroundStyle(LC.secondary.opacity(0.8))
+                    }
+                }
+            }
+            .padding(LC.spacingMD)
+            .lcCard()
+
+            Text("Use MLX-format models from huggingface.co/mlx-community")
+                .font(LC.caption(10))
+                .foregroundStyle(LC.secondary)
+                .padding(.leading, 2)
+        }
+    }
+
+    private func addCustomModel() {
+        customModelError = nil
+        isAddingCustomModel = true
+
+        do {
+            _ = try modelManager.addCustomModel(from: customModelInput)
+            customModelInput = ""
+        } catch {
+            customModelError = error.localizedDescription
+        }
+
+        isAddingCustomModel = false
     }
 
     // MARK: - Import Section

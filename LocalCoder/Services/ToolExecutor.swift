@@ -60,8 +60,10 @@ final class ToolExecutor {
         }
         // Truncate very large files to keep context (and KV cache memory) manageable.
         // On iOS, smaller is better — every extra token grows the KV cache in GPU memory.
+        // We use a conservative 3K limit on iOS to leave room for multiple file reads
+        // without overwhelming the KV cache.
         #if os(iOS)
-        let maxChars = 6_000
+        let maxChars = 3_000
         #else
         let maxChars = 12_000
         #endif

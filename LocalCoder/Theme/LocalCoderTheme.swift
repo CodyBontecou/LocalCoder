@@ -184,7 +184,7 @@ struct LCTabBar: View {
 
 struct LCAccessoryBar: View {
     @Binding var selectedTab: LCTab
-    let onDismissKeyboard: () -> Void
+    @Binding var isKeyboardActive: Bool
     
     var body: some View {
         HStack(spacing: 0) {
@@ -192,8 +192,8 @@ struct LCAccessoryBar: View {
             ForEach(LCTab.allCases, id: \.rawValue) { tab in
                 Button(action: { selectedTab = tab }) {
                     Image(systemName: tab.icon)
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(selectedTab == tab ? LC.accent : Color(UIColor.secondaryLabel))
+                        .font(.system(size: 17, weight: selectedTab == tab ? .semibold : .medium))
+                        .foregroundStyle(selectedTab == tab ? LC.primary : LC.secondary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 38)
                 }
@@ -206,9 +206,20 @@ struct LCAccessoryBar: View {
                 .frame(width: 1, height: 20)
                 .padding(.horizontal, 4)
             
-            // Keyboard dismiss button
-            Button(action: onDismissKeyboard) {
-                Image(systemName: "keyboard.chevron.compact.down")
+            // Keyboard toggle button
+            Button(action: {
+                if isKeyboardActive {
+                    // Dismiss keyboard
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    isKeyboardActive = false
+                } else {
+                    // Focus chat input (only works when on chat tab)
+                    if selectedTab == .chat {
+                        isKeyboardActive = true
+                    }
+                }
+            }) {
+                Image(systemName: isKeyboardActive ? "keyboard.chevron.compact.down" : "keyboard")
                     .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(Color(UIColor.secondaryLabel))
                     .frame(width: 44, height: 38)
@@ -216,7 +227,7 @@ struct LCAccessoryBar: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, LC.spacingSM)
-        .background(Color(red: 0.965, green: 0.949, blue: 0.925)) // #F6F2EC
+        .background(LC.surface)
     }
 }
 

@@ -410,6 +410,9 @@ struct SettingsView: View {
             .sheet(isPresented: $showConversationList) {
                 ConversationListView(viewModel: ChatViewModel())
             }
+            .onReceive(NotificationCenter.default.publisher(for: .openModelManager)) { _ in
+                showModelManager = true
+            }
 
         }
     }

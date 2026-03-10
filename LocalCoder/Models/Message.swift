@@ -59,6 +59,7 @@ struct ModelInfo: Identifiable, Codable {
     let size: String
     let description: String
     var isDownloaded: Bool = false
+    var isCustom: Bool = false
 
     var isLocalOnly: Bool {
         repositoryID == nil && localPath != nil

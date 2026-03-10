@@ -35,16 +35,20 @@
 		AA000025 /* DebugPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000025 /* DebugPanelView.swift */; };
 		AA000026 /* LocalCoderTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000026 /* LocalCoderTheme.swift */; };
 		AA000027 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000027 /* KeychainService.swift */; };
-		AA000034 /* GitHubAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000034 /* GitHubAuthService.swift */; };
 		AA000028 /* GitState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000028 /* GitState.swift */; };
 		AA000029 /* LocalGitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000029 /* LocalGitService.swift */; };
 		AA000030 /* GitSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000030 /* GitSyncManager.swift */; };
 		AA000031 /* Conversation.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000031 /* Conversation.swift */; };
 		AA000032 /* ConversationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000032 /* ConversationStore.swift */; };
 		AA000033 /* ConversationListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000033 /* ConversationListView.swift */; };
+		AA000034 /* GitHubAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000034 /* GitHubAuthService.swift */; };
+		AA000035 /* FileMentionPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000035 /* FileMentionPicker.swift */; };
+		AA000036 /* SlashCommandPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000036 /* SlashCommandPicker.swift */; };
+		AE52BD38A692E7A947E3E989 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4A4103322B65BB796DBE5C /* WelcomeView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		5C4A4103322B65BB796DBE5C /* WelcomeView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		AB000000 /* LocalCoder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LocalCoder.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB000001 /* LocalCoderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCoderApp.swift; sourceTree = "<group>"; };
 		AB000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -72,13 +76,15 @@
 		AB000025 /* DebugPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugPanelView.swift; sourceTree = "<group>"; };
 		AB000026 /* LocalCoderTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalCoderTheme.swift; sourceTree = "<group>"; };
 		AB000027 /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
-		AB000034 /* GitHubAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubAuthService.swift; sourceTree = "<group>"; };
 		AB000028 /* GitState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitState.swift; sourceTree = "<group>"; };
 		AB000029 /* LocalGitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalGitService.swift; sourceTree = "<group>"; };
 		AB000030 /* GitSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitSyncManager.swift; sourceTree = "<group>"; };
 		AB000031 /* Conversation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Conversation.swift; sourceTree = "<group>"; };
 		AB000032 /* ConversationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationStore.swift; sourceTree = "<group>"; };
 		AB000033 /* ConversationListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationListView.swift; sourceTree = "<group>"; };
+		AB000034 /* GitHubAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubAuthService.swift; sourceTree = "<group>"; };
+		AB000035 /* FileMentionPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMentionPicker.swift; sourceTree = "<group>"; };
+		AB000036 /* SlashCommandPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SlashCommandPicker.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -138,6 +144,9 @@
 				AB000019 /* GitTerminalView.swift */,
 				AB000025 /* DebugPanelView.swift */,
 				AB000033 /* ConversationListView.swift */,
+				AB000035 /* FileMentionPicker.swift */,
+				AB000036 /* SlashCommandPicker.swift */,
+				5C4A4103322B65BB796DBE5C /* WelcomeView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -241,7 +250,7 @@
 			mainGroup = AD000001;
 			packageReferences = (
 				AG000001 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */,
-				AG000002 /* XCLocalSwiftPackageReference "Packages/Clibgit2" */,
+				AG000002 /* XCLocalSwiftPackageReference "Clibgit2" */,
 			);
 			productRefGroup = AD000003 /* Products */;
 			projectDirPath = "";
@@ -300,6 +309,9 @@
 				AA000031 /* Conversation.swift in Sources */,
 				AA000032 /* ConversationStore.swift in Sources */,
 				AA000033 /* ConversationListView.swift in Sources */,
+				AA000035 /* FileMentionPicker.swift in Sources */,
+				AA000036 /* SlashCommandPicker.swift in Sources */,
+				AE52BD38A692E7A947E3E989 /* WelcomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -506,6 +518,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		AG000002 /* XCLocalSwiftPackageReference "Clibgit2" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/Clibgit2;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		AG000001 /* XCRemoteSwiftPackageReference "mlx-swift-lm" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -516,13 +535,6 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		AG000002 /* XCLocalSwiftPackageReference "Packages/Clibgit2" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "Packages/Clibgit2";
-		};
-/* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		AH000001 /* MLXLLM */ = {

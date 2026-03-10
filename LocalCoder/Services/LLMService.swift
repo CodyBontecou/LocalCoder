@@ -22,18 +22,27 @@ final class LLMService: ObservableObject {
     private var sessionTurnCount: Int = 0
     private let debugConsole = DebugConsole.shared
 
-    /// Maximum number of turns before resetting the session to reclaim memory.
-    /// On iOS we keep this low because the KV cache grows with each turn and
-    /// iPhones have much tighter memory limits than Macs.
+    /// Estimated token budget for the conversation history (not including the new message).
+    /// This is a conservative estimate - actual tokens may vary by model.
+    /// On iOS we use a much smaller budget because the KV cache lives in GPU memory.
     #if os(iOS)
-    private let maxSessionTurns = 12
+    private let maxHistoryTokenBudget = 2_000  // ~8KB of text
     #else
-    private let maxSessionTurns = 40
+    private let maxHistoryTokenBudget = 8_000  // ~32KB of text
     #endif
 
     /// Maximum characters allowed for the context string injected into system instructions.
     /// Keeps the prompt from ballooning when the user opens a large repo.
+    /// On iOS we use a much smaller limit to preserve memory for the KV cache.
+    #if os(iOS)
+    static let maxContextCharacters = 2_000
+    #else
     static let maxContextCharacters = 4_000
+    #endif
+
+    /// Tracks the estimated token count in the current session's history.
+    /// This is a rough estimate (chars / 4) but helps us proactively manage context.
+    private var estimatedSessionTokens: Int = 0
 
     private let lastModelKey = "last_loaded_model_id"
 
@@ -118,6 +127,22 @@ final class LLMService: ObservableObject {
             )
         }
         return isHigh
+    }
+
+    /// Returns `true` when memory is critically high and generation should abort.
+    /// Uses a higher threshold (90%) than `isMemoryPressureHigh` because this is
+    /// called during streaming where aborting mid-generation is disruptive.
+    private func isMemoryCritical() -> Bool {
+        let deviceInfo = GPU.deviceInfo()
+        let recommendedWorkingSet = Int64(clamping: deviceInfo.maxRecommendedWorkingSetSize)
+        guard recommendedWorkingSet > 0 else { return false }
+
+        let snapshot = Memory.snapshot()
+        let activeBytes = Int64(clamping: snapshot.activeMemory)
+
+        // Critical threshold at 90% — we're about to be jetsammed
+        let threshold = Double(recommendedWorkingSet) * 0.90
+        return Double(activeBytes) > threshold
     }
 
     // MARK: - Model Loading
@@ -291,29 +316,28 @@ final class LLMService: ObservableObject {
         let startedAt = Date()
         defer { isGenerating = false }
 
-        // Reset session if turn limit exceeded to bound memory growth
-        if sessionTurnCount >= maxSessionTurns {
+        // Check if we're approaching the token budget and should reset
+        let newContentTokens = estimateTokens(content)
+        let projectedTokens = estimatedSessionTokens + newContentTokens + 500  // +500 for expected response
+
+        if projectedTokens > maxHistoryTokenBudget {
             debugConsole.log(
-                "Session turn limit reached, resetting to reclaim memory",
+                "Token budget would be exceeded, resetting session",
                 category: .llm,
-                level: .warning,
-                details: "turns=\(sessionTurnCount)\nlimit=\(maxSessionTurns)"
+                level: .info,
+                details: "current_tokens=\(estimatedSessionTokens)\nnew_content_tokens=\(newContentTokens)\nprojected=\(projectedTokens)\nbudget=\(maxHistoryTokenBudget)"
             )
             resetChat()
         }
 
-        // If memory pressure is already high, try resetting the session first.
-        // If that's still not enough, warn but continue (the generation may OOM,
-        // but the memory-warning handler will try to recover).
-        if isMemoryPressureHigh() {
-            if sessionTurnCount > 0 {
-                debugConsole.log(
-                    "High memory pressure — resetting session before generation",
-                    category: .llm,
-                    level: .warning
-                )
-                resetChat()
-            }
+        // If memory pressure is high, also reset as a safety measure
+        if isMemoryPressureHigh() && estimatedSessionTokens > 0 {
+            debugConsole.log(
+                "High memory pressure — resetting session before generation",
+                category: .llm,
+                level: .warning
+            )
+            resetChat()
         }
 
         // Build instructions: static system prompt + optional dynamic context
@@ -390,10 +414,15 @@ final class LLMService: ObservableObject {
                 onToken(chunk)
             }
 
+            // Update estimated token count with the new content and response
+            let inputTokens = estimateTokens(content)
+            let outputTokens = estimateTokens(String(repeating: "x", count: characterCount))
+            estimatedSessionTokens += inputTokens + outputTokens
+
             debugConsole.log(
                 "Generation finished",
                 category: .llm,
-                details: "elapsed=\(elapsedString(since: startedAt))\nchunks=\(chunkCount)\ncharacters=\(characterCount)\nsession_turns=\(sessionTurnCount)"
+                details: "elapsed=\(elapsedString(since: startedAt))\nchunks=\(chunkCount)\ncharacters=\(characterCount)\nsession_turns=\(sessionTurnCount)\nestimated_session_tokens=\(estimatedSessionTokens)"
             )
 
             // Free temporary MLX allocations after each generation
@@ -409,11 +438,25 @@ final class LLMService: ObservableObject {
             throw CancellationError()
         } catch {
             Memory.clearCache()
+            
+            // Check for broadcast_shapes error which indicates sliding window attention bug
+            let errorDescription = describe(error)
+            if errorDescription.contains("broadcast_shapes") || errorDescription.contains("cannot be broadcast") {
+                debugConsole.log(
+                    "Detected sliding window attention shape mismatch - resetting session",
+                    category: .llm,
+                    level: .error,
+                    details: "This may be caused by a model with sliding window attention (e.g., Gemma 3n). Resetting session to recover.\n\n\(errorDescription)"
+                )
+                resetChat()
+                throw LLMError.shapeMismatchNeedsReset
+            }
+            
             debugConsole.log(
                 "Generation failed",
                 category: .llm,
                 level: .error,
-                details: "elapsed=\(elapsedString(since: startedAt))\nchunks=\(chunkCount)\ncharacters=\(characterCount)\n\n\(describe(error))"
+                details: "elapsed=\(elapsedString(since: startedAt))\nchunks=\(chunkCount)\ncharacters=\(characterCount)\n\n\(errorDescription)"
             )
             throw error
         }
@@ -424,6 +467,7 @@ final class LLMService: ObservableObject {
     func resetChat() {
         chatSession = nil
         sessionTurnCount = 0
+        estimatedSessionTokens = 0
         Memory.clearCache()
         debugConsole.log(
             "Chat session reset",
@@ -431,6 +475,64 @@ final class LLMService: ObservableObject {
             level: .debug,
             details: memorySnapshotReport(Memory.snapshot())
         )
+    }
+
+    // MARK: - Token Budget Management
+
+    /// Estimate the number of tokens in a string.
+    /// Uses a rough heuristic of ~4 characters per token (varies by model/language).
+    func estimateTokens(_ text: String) -> Int {
+        max(1, text.count / 4)
+    }
+
+    /// Estimate total tokens for an array of messages.
+    func estimateTokens(_ messages: [Chat.Message]) -> Int {
+        messages.reduce(0) { sum, msg in
+            sum + estimateTokens(msg.content)
+        }
+    }
+
+    /// Returns the maximum token budget for conversation history.
+    var historyTokenBudget: Int {
+        maxHistoryTokenBudget
+    }
+
+    /// Compact a message history to fit within the token budget.
+    /// Keeps the most recent messages and drops older ones.
+    /// Returns the compacted history and whether any messages were dropped.
+    func compactHistory(_ history: [Chat.Message], budget: Int? = nil) -> (messages: [Chat.Message], wasCompacted: Bool) {
+        let targetBudget = budget ?? maxHistoryTokenBudget
+        var totalTokens = estimateTokens(history)
+
+        guard totalTokens > targetBudget else {
+            return (history, false)
+        }
+
+        // Keep dropping the oldest messages until we're under budget
+        var compacted = history
+        while totalTokens > targetBudget && compacted.count > 2 {
+            // Always keep at least the last user message and last assistant message
+            let removed = compacted.removeFirst()
+            totalTokens -= estimateTokens(removed.content)
+        }
+
+        debugConsole.log(
+            "Compacted history to fit token budget",
+            category: .llm,
+            level: .info,
+            details: "original_messages=\(history.count)\ncompacted_messages=\(compacted.count)\nestimated_tokens=\(totalTokens)\nbudget=\(targetBudget)"
+        )
+
+        return (compacted, true)
+    }
+
+    /// Check if adding new content would exceed the token budget.
+    /// Returns true if compaction is recommended before generation.
+    func shouldCompactBeforeGeneration(newContentLength: Int, currentHistoryTokens: Int) -> Bool {
+        let newTokens = estimateTokens(String(repeating: "x", count: newContentLength))
+        // Leave room for the new message plus expected response (~500 tokens)
+        let projectedTotal = currentHistoryTokens + newTokens + 500
+        return projectedTotal > maxHistoryTokenBudget
     }
 
     /// Restore the chat session with a previous conversation history.
@@ -452,6 +554,7 @@ final class LLMService: ObservableObject {
         // Reset any existing session first
         chatSession = nil
         sessionTurnCount = 0
+        estimatedSessionTokens = estimateTokens(history)
         Memory.clearCache()
 
         // Build instructions with optional context
@@ -491,26 +594,30 @@ final class LLMService: ObservableObject {
 
     /// The system prompt that instructs the LLM how to use tools.
     static let systemPrompt = """
-    You are an expert coding assistant. You have four tools: read, write, edit, and bash.
+    You are an expert coding assistant with access to tools. You MUST use tools to complete tasks.
 
-    Wrap each tool call in <tool_call> tags with a JSON object inside.
+    TOOLS (use these to help the user):
+    - read: Read file contents. Usage: <tool_call>{"name": "read", "path": "file.txt"}</tool_call>
+    - write: Create/overwrite files. Usage: <tool_call>{"name": "write", "path": "file.txt", "content": "..."}</tool_call>
+    - edit: Find and replace text. Usage: <tool_call>{"name": "edit", "path": "file.txt", "oldText": "...", "newText": "..."}</tool_call>
+    - bash: Run commands. Usage: <tool_call>{"name": "bash", "command": "ls -la"}</tool_call>
 
-    Tools:
-    - read: Read a file. {"name": "read", "path": "<FILE>"}
-    - write: Create/overwrite a file. {"name": "write", "path": "<FILE>", "content": "<FULL FILE CONTENT>"}
-    - edit: Find and replace text in a file. {"name": "edit", "path": "<FILE>", "oldText": "<EXACT TEXT>", "newText": "<REPLACEMENT>"}
-    - bash: Run a command. {"name": "bash", "command": "<COMMAND>"}
-      Available commands: ls, cat, find, mkdir, rm, cp, mv, wc, head, tail, grep, echo, pwd
+    IMPORTANT RULES:
+    1. You MUST include <tool_call>...</tool_call> tags in your response to use a tool
+    2. Do NOT just describe what you would do - actually call the tool
+    3. Every response should contain at least one tool call when the user asks you to do something
+    4. Start tasks by exploring with bash (ls) or read
 
-    IMPORTANT: Replace <FILE> with the actual filename the user wants. \
-    The "path" must match what the user asked for. \
-    For write, "content" must contain the ENTIRE file — never leave it empty.
+    EXAMPLE - User says "create a hello world file":
+    I'll create a hello world Python file for you.
+    <tool_call>{"name": "write", "path": "hello.py", "content": "print('Hello, World!')"}</tool_call>
 
-    Rules:
-    - Always set "path" to the filename the user requested — never hardcode a path.
-    - Escape newlines as \\n and quotes as \\" inside JSON strings.
-    - All paths are relative to the project root.
-    - You can emit multiple tool calls in one response.
+    EXAMPLE - User says "list files":
+    <tool_call>{"name": "bash", "command": "ls -la"}</tool_call>
+
+    EXAMPLE - User says "build a website about cats":
+    I'll create an HTML file with a cats website.
+    <tool_call>{"name": "write", "path": "index.html", "content": "<!DOCTYPE html>\\n<html>\\n<head><title>Cats</title></head>\\n<body><h1>Welcome to Cats!</h1></body>\\n</html>"}</tool_call>
     """
 
     private func configuration(for model: ModelInfo, resolvedModelURL: URL?) throws -> ModelConfiguration {
@@ -556,8 +663,10 @@ final class LLMService: ObservableObject {
     }
 
     private func applyDefaultMemoryTuning(logEvent: Bool = true) {
+        // Smaller cache on iOS to leave more headroom for the KV cache during generation.
+        // The MLX cache holds temporary allocations; we clear it after each generation anyway.
         #if os(iOS)
-        let cacheLimit = 32 * 1024 * 1024
+        let cacheLimit = 16 * 1024 * 1024  // 16 MB
         #else
         let cacheLimit = 128 * 1024 * 1024
         #endif
@@ -575,9 +684,14 @@ final class LLMService: ObservableObject {
         let deviceInfo = GPU.deviceInfo()
         let recommendedWorkingSet = Int64(clamping: deviceInfo.maxRecommendedWorkingSetSize)
         if recommendedWorkingSet > 0 {
-            // Use 75% of the recommended working set as the hard MLX memory limit.
-            // This leaves headroom for UIKit, the system, and other frameworks.
-            let memoryLimit = Int(Double(recommendedWorkingSet) * 0.75)
+            // Use 65% of the recommended working set as the hard MLX memory limit.
+            // This is conservative but necessary — iOS jetsam is aggressive and will
+            // kill us without warning if we exceed limits. The remaining 35% is for:
+            // - UIKit and SwiftUI view hierarchy
+            // - System frameworks
+            // - Transient allocations during token generation
+            // - Safety margin for memory spikes
+            let memoryLimit = Int(Double(recommendedWorkingSet) * 0.65)
             let previousMemoryLimit = Memory.memoryLimit
             if previousMemoryLimit != memoryLimit {
                 Memory.memoryLimit = memoryLimit
@@ -617,8 +731,14 @@ final class LLMService: ObservableObject {
             return .max
         }
 
+        // On iOS we need to be very conservative. The model weights are just
+        // the starting point — generation requires additional memory for:
+        // - KV cache (grows with conversation length)
+        // - Activation tensors
+        // - MLX cache for temporary allocations
+        // Using 55% leaves enough headroom for multi-turn conversations.
         #if os(iOS)
-        return Int64(Double(referenceBudget) * 0.72)
+        return Int64(Double(referenceBudget) * 0.55)
         #else
         return Int64(Double(referenceBudget) * 0.85)
         #endif
@@ -754,6 +874,8 @@ enum LLMError: LocalizedError {
     case modelNotLoaded
     case invalidConversation
     case modelTooLargeForDevice(modelName: String, requiredBytes: Int64, budgetBytes: Int64)
+    case shapeMismatchNeedsReset
+    case memoryPressureTooHigh
 
     var errorDescription: String? {
         switch self {
@@ -767,6 +889,10 @@ enum LLMError: LocalizedError {
             let formatter = ByteCountFormatter()
             formatter.countStyle = .file
             return "\(modelName) is likely too large for this device. It needs about \(formatter.string(fromByteCount: requiredBytes)) to load safely, but this device budget is only about \(formatter.string(fromByteCount: budgetBytes)). Try a smaller 4-bit model in the 0.5B–3B range."
+        case .shapeMismatchNeedsReset:
+            return "The conversation exceeded this model's context limit. The chat has been reset. Please try a shorter conversation or use a different model."
+        case .memoryPressureTooHigh:
+            return "Memory is critically low. Generation was stopped to prevent a crash. Try clearing the chat or using a smaller model."
         }
     }
 }

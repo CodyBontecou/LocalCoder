@@ -89,4 +89,52 @@ final class FileService: ObservableObject {
             isDirectory(at: projectsRoot.appendingPathComponent($0).path)
         }.sorted() ?? []
     }
+
+    // MARK: - Recursive File Listing
+
+    /// Returns all files and folders recursively up to maxDepth.
+    /// Results are returned as FileItems with paths relative to the base.
+    func allFiles(at basePath: String? = nil, maxDepth: Int = 4) -> [FileItem] {
+        let baseURL = basePath.map { URL(fileURLWithPath: $0) } ?? projectsRoot
+        var results: [FileItem] = []
+        enumerateFiles(at: baseURL, relativeTo: baseURL, depth: 0, maxDepth: maxDepth, results: &results)
+        return results.sorted { a, b in
+            // Directories first, then alphabetical
+            if a.isDirectory != b.isDirectory { return a.isDirectory }
+            return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+        }
+    }
+
+    private func enumerateFiles(
+        at url: URL,
+        relativeTo base: URL,
+        depth: Int,
+        maxDepth: Int,
+        results: inout [FileItem]
+    ) {
+        guard depth <= maxDepth else { return }
+
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: url,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return }
+
+        for item in contents {
+            let isDir = (try? item.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
+            let relativePath = item.path.replacingOccurrences(of: base.path + "/", with: "")
+
+            let fileItem = FileItem(
+                name: item.lastPathComponent,
+                path: item.path,
+                isDirectory: isDir,
+                children: isDir ? [] : nil
+            )
+            results.append(fileItem)
+
+            if isDir {
+                enumerateFiles(at: item, relativeTo: base, depth: depth + 1, maxDepth: maxDepth, results: &results)
+            }
+        }
+    }
 }

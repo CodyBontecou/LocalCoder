@@ -6,13 +6,36 @@ import UIKit
 struct DebugPanelView: View {
     @ObservedObject var console: DebugConsole
     @Binding var isExpanded: Bool
+    var keyboardVisible: Bool = false
     @State private var autoScroll = true
+    @AppStorage("debug_panel_height") private var panelHeight: Double = 220
+    @GestureState private var dragOffset: CGFloat = 0
+    
+    private let minHeight: CGFloat = 100
+    private let maxHeight: CGFloat = 500
+    
+    private var currentHeight: CGFloat {
+        let height = panelHeight - Double(dragOffset)
+        return max(minHeight, min(maxHeight, height))
+    }
+    
+    /// Effective expanded state - collapsed when keyboard is visible
+    private var effectiveExpanded: Bool {
+        isExpanded && !keyboardVisible
+    }
 
     var body: some View {
         VStack(spacing: 0) {
+            // Drag indicator pill (like native iOS sheets)
+            Capsule()
+                .fill(LC.secondary.opacity(0.5))
+                .frame(width: 36, height: 5)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+            
             header
 
-            if isExpanded {
+            if effectiveExpanded {
                 Rectangle().fill(LC.border).frame(height: LC.borderWidth)
 
                 statsRow
@@ -34,7 +57,7 @@ struct DebugPanelView: View {
                         }
                         .padding(LC.spacingSM + 2)
                     }
-                    .frame(maxHeight: 220)
+                    .frame(height: currentHeight)
                     .onAppear {
                         scrollToBottom(using: proxy)
                     }
@@ -47,15 +70,57 @@ struct DebugPanelView: View {
                 }
             }
         }
-        .background(LC.inverseSurface)
+        .background(LC.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: LC.radiusMD))
         .overlay(
             RoundedRectangle(cornerRadius: LC.radiusMD)
                 .stroke(console.errorCount > 0 ? LC.destructive.opacity(0.5) : LC.border, lineWidth: LC.borderWidth)
         )
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture()
+                .updating($dragOffset) { value, state, _ in
+                    // Only track drag offset when expanded (for resizing)
+                    if effectiveExpanded {
+                        state = value.translation.height
+                    }
+                }
+                .onEnded { value in
+                    // Ignore gestures when keyboard is visible
+                    guard !keyboardVisible else { return }
+                    
+                    let translation = value.translation.height
+                    let velocity = value.predictedEndTranslation.height - translation
+                    
+                    if isExpanded {
+                        // Swipe down to collapse (threshold or velocity based)
+                        if translation > 80 || velocity > 200 {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                isExpanded = false
+                            }
+                        } else {
+                            // Just resize
+                            let predictedEnd = value.predictedEndTranslation.height
+                            let newHeight = panelHeight - Double(predictedEnd)
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                panelHeight = max(Double(minHeight), min(Double(maxHeight), newHeight))
+                            }
+                        }
+                    } else {
+                        // Swipe up to expand
+                        if translation < -30 || velocity < -100 {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                isExpanded = true
+                            }
+                        }
+                    }
+                }
+        )
         .padding(.horizontal, LC.spacingMD)
         .padding(.top, LC.spacingSM)
         .padding(.bottom, LC.spacingXS)
+        .animation(.interactiveSpring(response: 0.3, dampingFraction: 0.8), value: dragOffset)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: keyboardVisible)
     }
 
     private var header: some View {
@@ -66,7 +131,7 @@ struct DebugPanelView: View {
                 Text("DEBUG")
                     .font(LC.label(9))
                     .tracking(1.5)
-                    .foregroundStyle(LC.surface)
+                    .foregroundStyle(LC.primary)
 
                 Text(console.latestEntry?.message ?? "Watching events")
                     .font(LC.caption(10))
@@ -93,13 +158,6 @@ struct DebugPanelView: View {
             Button(action: { console.clear() }) {
                 Image(systemName: "trash")
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(LC.secondary)
-            }
-            .buttonStyle(.plain)
-
-            Button(action: { withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() } }) {
-                Image(systemName: isExpanded ? "chevron.down" : "chevron.up")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .foregroundStyle(LC.secondary)
             }
             .buttonStyle(.plain)
@@ -138,11 +196,11 @@ struct DebugPanelView: View {
                 .foregroundStyle(LC.secondary)
             Text(value)
                 .font(LC.label(10))
-                .foregroundStyle(LC.surface)
+                .foregroundStyle(LC.primary)
         }
         .padding(.horizontal, LC.spacingSM)
         .padding(.vertical, LC.spacingXS)
-        .background(LC.surface.opacity(0.08))
+        .background(LC.primary.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
     }
 
@@ -182,7 +240,7 @@ private struct DebugLogRow: View {
 
             Text(entry.message)
                 .font(LC.code(11))
-                .foregroundStyle(LC.surface)
+                .foregroundStyle(LC.primary)
                 .textSelection(.enabled)
 
             if let details = entry.details, !details.isEmpty {
@@ -194,7 +252,7 @@ private struct DebugLogRow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(LC.spacingSM)
-        .background(LC.surface.opacity(0.04))
+        .background(LC.primary.opacity(0.04))
         .clipShape(RoundedRectangle(cornerRadius: LC.radiusSM))
     }
 
